@@ -195,7 +195,7 @@ export class AppComponent implements OnInit {
       this.radMax = 1;
       this.radStep = .05;
     } else {
-      this.lhConfig.radius = 40;
+      this.lhConfig.radius = 30;
       this.radMin = 20;
       this.radMax = 60;
       this.radStep = 5;
@@ -216,23 +216,18 @@ export class AppComponent implements OnInit {
     this.settingsChanged();
   }
 
-  // addDotHeatLayers(): void {
-  //   const opts1 = {
-  //     radius: 25,
-  //     minOpacity: .3,
-  //     max: 9999,
-  //     gradient: {0.0: 'lightblue', 1: 'mediumblue'}
-  //   };
-  //   const opts2 = Object.assign({}, opts1, {gradient: {0.0: 'palegreen', 1: 'green'}});
-  //   const opts3 = Object.assign({}, opts1, {gradient: {0.0: 'lavender', 1: 'darkorchid'}});
-  //   const lhOpts = [opts1, opts2, opts3];
-  //
-  //   for (let i = 0; i < this.dataArrays.length; i++) {
-  //     const latLngArr = this.dataArrays[i].map(d => ({lat: d.bin.latitude, lng: d.bin.longitude, alt: d.count}));
-  //     const layer = this.leaf.heatLayer(latLngArr, lhOpts[i]);
-  //     this.layersControl.overlays[`LDH ${i}`] = layer;
-  //   }
-  // }
+  addDotHeatLayers(): void {
+    const opts1 = {
+      radius: 30,
+      minOpacity: .35,
+      max: 35000,
+      gradient: this.gradO
+    };
+
+    const latLngArr = this.mergedData.map(d => ({lat: d.lat, lng: d.lng, alt: d.count}));
+    const layer = this.leaf.heatLayer(latLngArr, opts1);
+    this.layersControl.overlays[`Dot Heat`] = layer;
+  }
 
   addLeafletHeatmap(): void {
     this.heatLayer = new HeatmapOverlay(this.lhConfig);
@@ -272,6 +267,7 @@ export class AppComponent implements OnInit {
   addAllHeatmaps() {
     this.combineData();
     this.addLeafletHeatmap();
+    // this.addDotHeatLayers();
   }
 
   onMapReady(map: Map) {

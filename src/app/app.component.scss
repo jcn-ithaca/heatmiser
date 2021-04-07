@@ -1,0 +1,18 @@
+.map {
+  height: 100%;
+  width: 100%;
+  padding: 0;
+}
+
+.mat-grid-tile .mat-figure {
+  justify-content: flex-start !important ;
+  align-items: flex-start !important;
+}
+
+mat-checkbox {
+  margin-right: 15px;
+}
+
+span.label {
+  width: 100px;
+}

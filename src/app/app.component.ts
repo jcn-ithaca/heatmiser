@@ -10,15 +10,6 @@ import track3 from 'testdata/track3.json';
 type HeatmapOverlayConstructor = new(cfg: any) => any;
 declare var HeatmapOverlay: HeatmapOverlayConstructor;
 
-// interface TestLocation {
-//   latitude: number;
-//   longitude: number;
-// }
-// interface TestDatum {
-//   bin: TestLocation;
-//   count: number;
-// }
-
 interface HmDatum {
   lat: number;
   lng: number;
@@ -32,7 +23,7 @@ interface HmDatum {
   styleUrls: ['./app.component.scss']
 })
 export class AppComponent implements OnInit {
-  wMaps: L.TileLayer;
+  baseMap: L.TileLayer;
   leafletOpts;
   layersControl;
   heatLayer: any;
@@ -46,8 +37,15 @@ export class AppComponent implements OnInit {
   radStep = 5;
   dataMax = 0;
 
+  gradMulti = {
+    0.0 : '#0000FF',
+    0.25 : '#adff2f',
+    0.5 : '#FFFF00',
+    0.75 : '#feb24c',
+    1.0 : '#bd0026',
+  };
   gradYOR1 = {
-    0.0 : '#fed976',
+    0.0 : '#eed976',
     0.4 : '#feb24c',
     0.6 : '#fd8d3c',
     1.0 : '#bd0026',
@@ -107,7 +105,8 @@ export class AppComponent implements OnInit {
     {label: 'Blue-Purple', gradient: this.gradBP},
     {label: 'Blues', gradient: this.gradB},
     {label: 'Purples', gradient: this.gradP},
-    {label: 'Greens', gradient: this.gradG}
+    {label: 'Greens', gradient: this.gradG},
+    {label: 'Rainbow', gradient: this.gradMulti}
   ];
 
   lhConfig = {
@@ -117,6 +116,7 @@ export class AppComponent implements OnInit {
     radius: 30,
     minOpacity: .4,
     maxOpacity: .6,
+    blur: .85,
     // scales the radius based on map zoom
     scaleRadius: false,
     // if set to false the heatmap uses the global maximum for colorization
@@ -131,28 +131,30 @@ export class AppComponent implements OnInit {
     valueField: 'count'
   };
 
-  // mapLayers = [];
-
   constructor() {
   }
 
   ngOnInit() {
-    // this.wMaps = tileLayer('http://maps.wikimedia.org/osm-intl/{z}/{x}/{y}.png', {
-    this.wMaps = tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png', {
+    const baseMap1 = tileLayer('http://maps.wikimedia.org/osm-intl/{z}/{x}/{y}.png', {
+      detectRetina: true,
+      attribution: '&amp;copy; &lt;a href="https://www.openstreetmap.org/copyright"&gt;OpenStreetMap&lt;/a&gt; contributors'
+    });
+    const baseMap2 = tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png', {
       detectRetina: true,
       attribution: '&amp;copy; &lt;a href="https://www.openstreetmap.org/copyright"&gt;OpenStreetMap&lt;/a&gt; contributors'
     });
 
     this.layersControl = {
       baseLayers: {
-        'Wikimedia Maps': this.wMaps
+        'Wikimedia Map' : baseMap1,
+        'Stadia Map': baseMap2
       },
       overlays: {}
     };
 
     // Set the initial set of displayed layers (we could also use the leafletLayers input binding for this)
     this.leafletOpts = {
-      layers: [this.wMaps],
+      layers: [baseMap1, baseMap2],
       zoom: 7,
       center: latLng([40, -75])
     };
@@ -216,7 +218,7 @@ export class AppComponent implements OnInit {
     this.settingsChanged();
   }
 
-  addDotHeatLayers(): void {
+  addDotHeat(): void {
     const opts1 = {
       radius: 30,
       minOpacity: .35,
@@ -228,6 +230,20 @@ export class AppComponent implements OnInit {
     const layer = this.leaf.heatLayer(latLngArr, opts1);
     this.layersControl.overlays[`Dot Heat`] = layer;
   }
+
+  // addWebGlHeatmap(): void {
+  //   const opts = {
+  //     size: 30,
+  //     units: 'px',
+  //     alphaRange: 0.5, // ??
+  //     max: 35000,
+  //     autoresize: true
+  //   };
+  //   const wglData = this.mergedData.map(d => ( [d.lat, d.lng, d.count] ));
+  //   const layer = new this.leaf.WebGLHeatMap(opts);
+  //   layer.setData(wglData);
+  //   this.layersControl.overlays[`WebGL Heatmap`] = layer;
+  // }
 
   addLeafletHeatmap(): void {
     this.heatLayer = new HeatmapOverlay(this.lhConfig);
@@ -267,7 +283,8 @@ export class AppComponent implements OnInit {
   addAllHeatmaps() {
     this.combineData();
     this.addLeafletHeatmap();
-    // this.addDotHeatLayers();
+    this.addDotHeat();
+    // this.addWebGlHeatmap();
   }
 
   onMapReady(map: Map) {

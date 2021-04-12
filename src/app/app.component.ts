@@ -34,8 +34,7 @@ export class AppComponent implements OnInit {
   leaf = L as any;
   combinedData: HmDatum[] = [];
   mergedData: HmDatum[] = [];
-  mutedData: HmDatum[] = [];
-  boostedData: HmDatum[] = [];
+  filteredData: HmDatum[] = [];
   radMin = 20;
   radMax = 60;
   radStep = 5;
@@ -43,6 +42,7 @@ export class AppComponent implements OnInit {
   muteLowActivity = false;
   muteMinimum = 5;
   highlightConvergence = false;
+  highlightFactor = 10;
 
   gradMulti = {
     0.0 : '#0000FF',
@@ -66,6 +66,12 @@ export class AppComponent implements OnInit {
     0.0 : '#fed976',
     0.1 : '#fd8d3c',
     1.0 : '#e31a1c',
+  };
+  gradYOR4 = {
+    0.0 : '#eed976',
+    0.4 : '#feb24c',
+    0.6 : '#fd8d3c',
+    1.0 : '#bd0026',
   };
   gradBP = {
     0.0 : '#b3cde3',
@@ -107,6 +113,7 @@ export class AppComponent implements OnInit {
     {label: 'Yellow-Orange-Red #1', gradient: this.gradYOR1},
     {label: 'Yellow-Orange-Red #2', gradient: this.gradYOR2},
     {label: 'Yellow-Orange-Red #3', gradient: this.gradYOR3},
+    {label: 'Yellow-Orange-Red #4', gradient: this.gradYOR4},
     {label: 'Oranges', gradient: this.gradO},
     {label: 'Reds', gradient: this.gradR},
     {label: 'Blue-Purple', gradient: this.gradBP},
@@ -177,7 +184,21 @@ export class AppComponent implements OnInit {
     this.addAllHeatmaps();
   }
 
-  setDefaultConfig(n: number) {
+  updateDataMax(): void {
+    this.dataMax = 0;
+    // const whichData = this.filteredData ? this.filteredData : this.mergedData;
+    const whichData = this.mergedData;  // allow boosted cells to exceed dataMax?
+
+    if (whichData) {
+      for (const d of whichData) {
+        if (d.count > this.dataMax) {
+          this.dataMax = d.count;
+        }
+      }
+    }
+  }
+
+  setDefaultConfig(n: number): void {
     switch (n) {
       case 1:
         this.whichGradient = this.gradYOR1;
@@ -187,6 +208,7 @@ export class AppComponent implements OnInit {
         this.lhConfig.minOpacity = .35;
         this.lhConfig.maxOpacity = .65;
         this.muteLowActivity = false;
+        this.highlightConvergence = false;
         break;
       case 2:
         break;
@@ -235,11 +257,11 @@ export class AppComponent implements OnInit {
     // }
   }
 
-  dataBoundsChanged() {
-    const layerData = {min: 0, max: this.dataMax, data: this.mergedData};
-    this.heatLayer.setData(layerData);
-    this.settingsChanged();
-  }
+  // dataBoundsChanged() {
+  //   const layerData = {min: 0, max: this.dataMax, data: this.mergedData};
+  //   this.heatLayer.setData(layerData);
+  //   this.settingsChanged();
+  // }
 
   addDotHeat(): void {
     const opts1 = {
@@ -275,26 +297,44 @@ export class AppComponent implements OnInit {
     this.heatLayers = [this.heatLayer];
   }
 
-  toggleMute() {
-    const layerData = {min: 0, max: this.dataMax, data: this.mergedData};
+  refilterData() {
+    this.combineData();
+    this.filteredData = JSON.parse(JSON.stringify(this.mergedData));
+    let boosted = 0;
 
     if (this.muteLowActivity) {
-      layerData.data = this.mutedData;
+      this.filteredData = this.filteredData.filter(d => d.count >= this.muteMinimum);
+      console.log(`>>> Muted bins: ${this.filteredData.length};`);
     }
-    this.heatLayer.setData(layerData);
-  }
-
-  toggleConvergence() {
-    const layerData = {min: 0, max: this.dataMax, data: this.mergedData};
 
     if (this.highlightConvergence) {
-      this.muteLowActivity = false;
-      layerData.data = this.boostedData;
+      for (const bd of this.filteredData) {
+        if (bd.numDevices > 1) {
+          bd.count = bd.count * (bd.numDevices * this.highlightFactor);
+          boosted++;
+          if (bd.numDevices === 3) {
+            console.log(`>>> Found triple cell at : ${bd.lat} : ${bd.lng} with boosted count = ${bd.count};`);
+          }
+        }
+      }
     }
+    const doubles = this.filteredData.filter(d => d.numDevices === 2);
+    const triples = this.filteredData.filter(d => d.numDevices === 3);
+    console.log(`>>> Double cells: ${doubles.length};`);
+    console.log(`>>> Triple cells: ${triples.length};`);
+    console.log(`>>> Boosted ${boosted} multi-device cells;`);
+
+    this.updateDataMax();
+    const layerData = {min: 0, max: this.dataMax, data: this.filteredData};
+    console.log(`>>> Setting data with dataMax of ${this.dataMax};`);
     this.heatLayer.setData(layerData);
   }
 
   combineData(): void {
+    this.combinedData = [];
+    this.mergedData = [];
+    this.filteredData = [];
+
     for (const arr of this.dataArrays) {
       const latLngArr: HmDatum[] = arr.map(d => ({lat: d.bin.latitude, lng: d.bin.longitude, count: d.count, binID: `${d.bin.latitude}:${d.bin.longitude}`, numDevices: 1}));
       this.combinedData = this.combinedData.concat(latLngArr);
@@ -320,19 +360,7 @@ export class AppComponent implements OnInit {
       }
     }
     console.log(`>>> Merged bins: ${this.mergedData.length};`);
-    this.mutedData = this.mergedData.filter(d => d.count >= this.muteMinimum);
-    console.log(`>>> Muted bins: ${this.mutedData.length};`);
-
-    this.boostedData = JSON.parse(JSON.stringify(this.mergedData));
-    for (const bd of this.boostedData) {
-      if (bd.numDevices > 1) {
-        bd.count = bd.count * (bd.numDevices * 10);
-      }
-    }
-    const doubles = this.boostedData.filter(d => d.count === 2);
-    const triples = this.boostedData.filter(d => d.count === 3);
-    console.log(`>>> Double bins: ${doubles.length};`);
-    console.log(`>>> Triple bins: ${triples.length};`);
+    this.updateDataMax();
   }
 
   addAllHeatmaps() {

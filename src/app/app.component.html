@@ -23,12 +23,12 @@
         <span> Use Local Max </span>
       </mat-list-item>
       <mat-list-item>
-        <mat-checkbox [(ngModel)]="muteLowActivity" (ngModelChange)="toggleMute()">
+        <mat-checkbox [(ngModel)]="muteLowActivity" (ngModelChange)="refilterData()">
         </mat-checkbox>
         <span> Mute Low Activity </span>
       </mat-list-item>
       <mat-list-item>
-        <mat-checkbox [(ngModel)]="highlightConvergence" (ngModelChange)="toggleConvergence()">
+        <mat-checkbox [(ngModel)]="highlightConvergence" (ngModelChange)="refilterData()">
         </mat-checkbox>
         <span> Highlight Convergence </span>
       </mat-list-item>

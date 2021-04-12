@@ -15,6 +15,7 @@ interface HmDatum {
   lng: number;
   count: number;
   binID: string;
+  numDevices: number;
 }
 
 @Component({
@@ -23,19 +24,25 @@ interface HmDatum {
   styleUrls: ['./app.component.scss']
 })
 export class AppComponent implements OnInit {
-  baseMap: L.TileLayer;
   leafletOpts;
   layersControl;
-  heatLayer: any;
+  heatLayer: any;   // leaflet-heatmap
+  dotHeatLayer: any;   // leaflet.heat
+
   heatLayers = [this.heatLayer];
   dataArrays = [track1, track2, track3];
   leaf = L as any;
   combinedData: HmDatum[] = [];
   mergedData: HmDatum[] = [];
+  mutedData: HmDatum[] = [];
+  boostedData: HmDatum[] = [];
   radMin = 20;
   radMax = 60;
   radStep = 5;
   dataMax = 0;
+  muteLowActivity = false;
+  muteMinimum = 5;
+  highlightConvergence = false;
 
   gradMulti = {
     0.0 : '#0000FF',
@@ -57,7 +64,7 @@ export class AppComponent implements OnInit {
   };
   gradYOR3 = {
     0.0 : '#fed976',
-    0.3 : '#fd8d3c',
+    0.1 : '#fd8d3c',
     1.0 : '#e31a1c',
   };
   gradBP = {
@@ -113,7 +120,7 @@ export class AppComponent implements OnInit {
     gradient: this.gradYOR1,
     // radius should be small ONLY if scaleRadius is true (or small radius is intended)
     // if scaleRadius is false it will be the constant radius used in pixels
-    radius: 30,
+    radius: 35,
     minOpacity: .4,
     maxOpacity: .6,
     blur: .85,
@@ -176,9 +183,10 @@ export class AppComponent implements OnInit {
         this.whichGradient = this.gradYOR1;
         this.lhConfig.useLocalExtrema = true;
         this.lhConfig.scaleRadius = false;
-        this.lhConfig.radius = 30;
+        this.lhConfig.radius = 35;
         this.lhConfig.minOpacity = .35;
         this.lhConfig.maxOpacity = .65;
+        this.muteLowActivity = false;
         break;
       case 2:
         break;
@@ -205,11 +213,26 @@ export class AppComponent implements OnInit {
     this.settingsChanged();
   }
 
+  // Update leaflet-heatmap layer
   settingsChanged() {
     this.lhConfig.gradient = this.whichGradient;
-    // Hack to redraw heatmap (https://github.com/pa7/heatmap.js/issues/290)
-    this.heatLayer._heatmap.configure(this.lhConfig);
-    this.heatLayer._reset();
+
+    if (this.heatLayer) {
+      // Hack to redraw heatmap (https://github.com/pa7/heatmap.js/issues/290)
+      this.heatLayer._heatmap.configure(this.lhConfig);
+      this.heatLayer._reset();
+    }
+
+    // Update leaflet.heat layer
+    // if (this.dotHeatLayer) {
+    //   const opts = {
+    //     radius: this.lhConfig.radius,
+    //     minOpacity: this.lhConfig.minOpacity,
+    //     max: this.dataMax,
+    //     gradient: this.whichGradient
+    //   };
+    //   this.dotHeatLayer.setOptions(opts);
+    // }
   }
 
   dataBoundsChanged() {
@@ -220,15 +243,14 @@ export class AppComponent implements OnInit {
 
   addDotHeat(): void {
     const opts1 = {
-      radius: 30,
-      minOpacity: .35,
-      max: 35000,
-      gradient: this.gradO
+      radius: 35,
+      minOpacity: .4,
+      max: 38000,
+      gradient: this.gradYOR1
     };
-
     const latLngArr = this.mergedData.map(d => ({lat: d.lat, lng: d.lng, alt: d.count}));
-    const layer = this.leaf.heatLayer(latLngArr, opts1);
-    this.layersControl.overlays[`Dot Heat`] = layer;
+    this.dotHeatLayer = this.leaf.heatLayer(latLngArr, opts1);
+    this.layersControl.overlays[`Dot Heat`] = this.dotHeatLayer;
   }
 
   // addWebGlHeatmap(): void {
@@ -253,9 +275,28 @@ export class AppComponent implements OnInit {
     this.heatLayers = [this.heatLayer];
   }
 
+  toggleMute() {
+    const layerData = {min: 0, max: this.dataMax, data: this.mergedData};
+
+    if (this.muteLowActivity) {
+      layerData.data = this.mutedData;
+    }
+    this.heatLayer.setData(layerData);
+  }
+
+  toggleConvergence() {
+    const layerData = {min: 0, max: this.dataMax, data: this.mergedData};
+
+    if (this.highlightConvergence) {
+      this.muteLowActivity = false;
+      layerData.data = this.boostedData;
+    }
+    this.heatLayer.setData(layerData);
+  }
+
   combineData(): void {
     for (const arr of this.dataArrays) {
-      const latLngArr: HmDatum[] = arr.map(d => ({lat: d.bin.latitude, lng: d.bin.longitude, count: d.count, binID: `${d.bin.latitude}:${d.bin.longitude}`}));
+      const latLngArr: HmDatum[] = arr.map(d => ({lat: d.bin.latitude, lng: d.bin.longitude, count: d.count, binID: `${d.bin.latitude}:${d.bin.longitude}`, numDevices: 1}));
       this.combinedData = this.combinedData.concat(latLngArr);
     }
     // Sort data so points with same bin (grid cell) are guaranteed to be adjacent in the combined array
@@ -269,6 +310,7 @@ export class AppComponent implements OnInit {
         const c = this.combinedData[0];
         if (c.lat === m.lat && c.lng === m.lng) {  // same bin
           m.count += c.count;
+          m.numDevices++;
           this.combinedData.shift();
         } else {
           this.mergedData.unshift(this.combinedData.shift());
@@ -278,6 +320,19 @@ export class AppComponent implements OnInit {
       }
     }
     console.log(`>>> Merged bins: ${this.mergedData.length};`);
+    this.mutedData = this.mergedData.filter(d => d.count >= this.muteMinimum);
+    console.log(`>>> Muted bins: ${this.mutedData.length};`);
+
+    this.boostedData = JSON.parse(JSON.stringify(this.mergedData));
+    for (const bd of this.boostedData) {
+      if (bd.numDevices > 1) {
+        bd.count = bd.count * (bd.numDevices * 10);
+      }
+    }
+    const doubles = this.boostedData.filter(d => d.count === 2);
+    const triples = this.boostedData.filter(d => d.count === 3);
+    console.log(`>>> Double bins: ${doubles.length};`);
+    console.log(`>>> Triple bins: ${triples.length};`);
   }
 
   addAllHeatmaps() {

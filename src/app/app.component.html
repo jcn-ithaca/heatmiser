@@ -23,6 +23,16 @@
         <span> Use Local Max </span>
       </mat-list-item>
       <mat-list-item>
+        <mat-checkbox [(ngModel)]="muteLowActivity" (ngModelChange)="toggleMute()">
+        </mat-checkbox>
+        <span> Mute Low Activity </span>
+      </mat-list-item>
+      <mat-list-item>
+        <mat-checkbox [(ngModel)]="highlightConvergence" (ngModelChange)="toggleConvergence()">
+        </mat-checkbox>
+        <span> Highlight Convergence </span>
+      </mat-list-item>
+      <mat-list-item>
         <span class="label">Radius</span>
         <mat-slider thumbLabel [min]="radMin" [max]="radMax" [step]="radStep"
           [(ngModel)]="lhConfig.radius" (ngModelChange)="settingsChanged()">

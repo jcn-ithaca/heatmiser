@@ -22,16 +22,16 @@
         </mat-checkbox>
         <span> Use Local Max </span>
       </mat-list-item>
-      <mat-list-item>
-        <mat-checkbox [(ngModel)]="muteLowActivity" (ngModelChange)="refilterData()">
-        </mat-checkbox>
-        <span> Mute Low Activity </span>
-      </mat-list-item>
-      <mat-list-item>
-        <mat-checkbox [(ngModel)]="highlightConvergence" (ngModelChange)="refilterData()">
-        </mat-checkbox>
-        <span> Highlight Convergence </span>
-      </mat-list-item>
+<!--      <mat-list-item>-->
+<!--        <mat-checkbox [(ngModel)]="muteLowActivity" (ngModelChange)="refilterData()">-->
+<!--        </mat-checkbox>-->
+<!--        <span> Mute Low Activity </span>-->
+<!--      </mat-list-item>-->
+<!--      <mat-list-item>-->
+<!--        <mat-checkbox [(ngModel)]="highlightConvergence" (ngModelChange)="refilterData()">-->
+<!--        </mat-checkbox>-->
+<!--        <span> Highlight Convergence </span>-->
+<!--      </mat-list-item>-->
       <mat-list-item>
         <span class="label">Radius</span>
         <mat-slider thumbLabel [min]="radMin" [max]="radMax" [step]="radStep"
@@ -53,19 +53,16 @@
         </mat-slider>
         <span>{{ lhConfig.maxOpacity }}</span>
       </mat-list-item>
-<!--      <mat-list-item>-->
-<!--        <span class="label">Blur</span>-->
-<!--        <mat-slider thumbLabel min="0" max="1" step=".05"-->
-<!--          [(ngModel)]="lhConfig.blur" (ngModelChange)="settingsChanged()">-->
-<!--        </mat-slider>-->
-<!--        <span>{{ lhConfig.blur }}</span>-->
-<!--      </mat-list-item>-->
+      <mat-list-item>
+        <span class="label">Blur</span>
+        <mat-slider thumbLabel min="0" max="1" step=".05"
+          [(ngModel)]="lhConfig.blur" (ngModelChange)="resetDataAndSettings()">
+        </mat-slider>
+        <span>{{ lhConfig.blur }}</span>
+      </mat-list-item>
       <mat-list-item>
         <button mat-flat-button color="primary" (click)="applySettings(1)">Restore Defaults</button>
       </mat-list-item>
-<!--      <mat-list-item>-->
-<!--        <button mat-flat-button color="primary" (click)="applySettings(2)">Apply Settings #2</button>-->
-<!--      </mat-list-item>-->
     </mat-list>
   </mat-grid-tile>
 

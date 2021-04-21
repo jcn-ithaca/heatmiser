@@ -3,9 +3,29 @@ import {latLng, Map, tileLayer} from 'leaflet';
 import * as L from 'leaflet';
 import 'leaflet-heatmap';
 import 'leaflet.heat/dist/leaflet-heat';
-import track1 from 'testdata/track1.json';
-import track2 from 'testdata/track2.json';
-import track3 from 'testdata/track3.json';
+import tracks_1 from 'testdata/a1.json';
+import tracks_2 from 'testdata/a2.json';
+import tracks_3 from 'testdata/a3.json';
+import tracks_4 from 'testdata/a4.json';
+import tracks_5 from 'testdata/a5.json';
+import tracks_6 from 'testdata/a6.json';
+import tracks_7 from 'testdata/a7.json';
+import tracks_8 from 'testdata/a8.json';
+import tracks_9 from 'testdata/a9.json';
+import tracks_10 from 'testdata/a10.json';
+import tracks_11 from 'testdata/a11.json';
+import tracks_12 from 'testdata/a12.json';
+import tracks_13 from 'testdata/a13.json';
+import tracks_14 from 'testdata/a14.json';
+import tracks_15 from 'testdata/a15.json';
+import tracks_16 from 'testdata/a16.json';
+import tracks_17 from 'testdata/a17.json';
+import tracks_18 from 'testdata/a18.json';
+import tracks_19 from 'testdata/a19.json';
+import tracks_20 from 'testdata/a20.json';
+import tracks_21 from 'testdata/a21.json';
+import tracks_22 from 'testdata/a22.json';
+import tracks_23 from 'testdata/a23.json';
 
 type HeatmapOverlayConstructor = new(cfg: any) => any;
 declare var HeatmapOverlay: HeatmapOverlayConstructor;
@@ -30,7 +50,12 @@ export class AppComponent implements OnInit {
   dotHeatLayer: any;   // leaflet.heat
 
   heatLayers = [this.heatLayer];
-  dataArrays = [track1, track2, track3];
+  dataArrays = [
+    tracks_1, tracks_2, tracks_3, tracks_4, tracks_5, tracks_6,
+    tracks_7, tracks_8, tracks_9, tracks_10, tracks_11, tracks_12,
+    tracks_13, tracks_14, tracks_15, tracks_16, tracks_17, tracks_18,
+    tracks_19, tracks_20, tracks_21, tracks_22, tracks_23
+    ];
   leaf = L as any;
   combinedData: HmDatum[] = [];
   mergedData: HmDatum[] = [];
@@ -174,11 +199,11 @@ export class AppComponent implements OnInit {
     };
 
     // Find overall maximum count value (our JSON data is sorted by count)
-    for (const arr of this.dataArrays) {
-      if (arr[0].count > this.dataMax) {
-        this.dataMax = arr[0].count;
-      }
-    }
+    // for (const arr of this.dataArrays) {
+    //   if (arr[0].count > this.dataMax) {
+    //     this.dataMax = arr[0].count;
+    //   }
+    // }
 
     this.setDefaultConfig(1);
     this.addAllHeatmaps();
@@ -257,11 +282,10 @@ export class AppComponent implements OnInit {
     // }
   }
 
-  // dataBoundsChanged() {
-  //   const layerData = {min: 0, max: this.dataMax, data: this.mergedData};
-  //   this.heatLayer.setData(layerData);
-  //   this.settingsChanged();
-  // }
+  resetDataAndSettings() {
+    this.addLeafletHeatmap();
+    this.settingsChanged();
+  }
 
   addDotHeat(): void {
     const opts1 = {
@@ -336,7 +360,10 @@ export class AppComponent implements OnInit {
     this.filteredData = [];
 
     for (const arr of this.dataArrays) {
+      // tslint:disable-next-line:max-line-length
       const latLngArr: HmDatum[] = arr.map(d => ({lat: d.bin.latitude, lng: d.bin.longitude, count: d.count, binID: `${d.bin.latitude}:${d.bin.longitude}`, numDevices: 1}));
+      // tslint:disable-next-line:max-line-length
+      // const latLngArr: HmDatum[] = arr.map(d => ({lat: d.track.location.latitude, lng: d.track.location.longitude, count: 1, binID: `${d.track.location.latitude}:${d.track.location.longitude}`, numDevices: 1}));
       this.combinedData = this.combinedData.concat(latLngArr);
     }
     // Sort data so points with same bin (grid cell) are guaranteed to be adjacent in the combined array
@@ -350,7 +377,7 @@ export class AppComponent implements OnInit {
         const c = this.combinedData[0];
         if (c.lat === m.lat && c.lng === m.lng) {  // same bin
           m.count += c.count;
-          m.numDevices++;
+          // m.numDevices++;
           this.combinedData.shift();
         } else {
           this.mergedData.unshift(this.combinedData.shift());

@@ -1,61 +1,77 @@
 <mat-grid-list cols="4" rowHeight="100%">
-
   <mat-grid-tile colspan="1" rowspan="1" style="min-width: 300px">
     <mat-list>
       <mat-list-item>
-        <mat-form-field appearance="fill">
-          <mat-label>Color Ramp</mat-label>
+        <mat-form-field>
+          <mat-label>Colors</mat-label>
           <mat-select [(ngModel)]="whichGradient" (ngModelChange)="settingsChanged()">
-            <mat-option *ngFor="let g of gradients" [value]="g.gradient">
+            <mat-option *ngFor="let g of gradients" [value]="g.gradient" class="rampOption">
               {{g.label}}
             </mat-option>
           </mat-select>
         </mat-form-field>
       </mat-list-item>
       <mat-list-item>
+        <mat-form-field>
+          <mat-label>Opacity</mat-label>
+          <mat-select [(ngModel)]="opacityLevel" (ngModelChange)="opacityChanged()">
+            <mat-option *ngFor="let ol of opacityLabels; let i = index" [value]="i">
+              {{ol}}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </mat-list-item>
+      <mat-list-item>
+        <mat-form-field>
+          <mat-label>Hotspots</mat-label>
+          <mat-select [(ngModel)]="hotspotIndex" (ngModelChange)="hotspotChanged()">
+            <mat-option *ngFor="let opt of hotspotOptions; let i = index" [value]="i">
+              {{opt}}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </mat-list-item>
+    <hr>
+      <div mat-subheader>Under the Hood</div>
+      <mat-list-item>
         <mat-checkbox [(ngModel)]="lhConfig.scaleRadius" (ngModelChange)="toggleScaling()">
         </mat-checkbox>
         <span> Scale Radius </span>
       </mat-list-item>
       <mat-list-item>
-        <mat-checkbox [(ngModel)]="lhConfig.useLocalExtrema" (ngModelChange)="settingsChanged()">
+        <mat-checkbox [(ngModel)]="muteLowActivity" (ngModelChange)="refilterData()">
         </mat-checkbox>
-        <span> Use Local Max </span>
+        <span> Mute Low Activity </span>
       </mat-list-item>
-<!--      <mat-list-item>-->
-<!--        <mat-checkbox [(ngModel)]="muteLowActivity" (ngModelChange)="refilterData()">-->
-<!--        </mat-checkbox>-->
-<!--        <span> Mute Low Activity </span>-->
-<!--      </mat-list-item>-->
-<!--      <mat-list-item>-->
-<!--        <mat-checkbox [(ngModel)]="highlightConvergence" (ngModelChange)="refilterData()">-->
-<!--        </mat-checkbox>-->
-<!--        <span> Highlight Convergence </span>-->
-<!--      </mat-list-item>-->
+      <mat-list-item>
+        <mat-checkbox [(ngModel)]="highlightConvergence" (ngModelChange)="refilterData()">
+        </mat-checkbox>
+        <span> Highlight Convergence </span>
+      </mat-list-item>
       <mat-list-item>
         <span class="label">Radius</span>
-        <mat-slider thumbLabel [min]="radMin" [max]="radMax" [step]="radStep"
+        <mat-slider [min]="radMin" [max]="radMax" [step]="radStep"
           [(ngModel)]="lhConfig.radius" (ngModelChange)="settingsChanged()">
         </mat-slider>
         <span>{{ lhConfig.radius }}</span>
       </mat-list-item>
       <mat-list-item>
         <span class="label">Min Opacity</span>
-        <mat-slider thumbLabel min="0" max="1" step=".05"
+        <mat-slider min="0" max="1" step=".05"
           [(ngModel)]="lhConfig.minOpacity" (ngModelChange)="settingsChanged()">
         </mat-slider>
         <span>{{ lhConfig.minOpacity }}</span>
       </mat-list-item>
       <mat-list-item>
         <span class="label">Max Opacity</span>
-        <mat-slider thumbLabel min="0" max="1" step=".05"
+        <mat-slider min="0" max="1" step=".05"
           [(ngModel)]="lhConfig.maxOpacity" (ngModelChange)="settingsChanged()">
         </mat-slider>
         <span>{{ lhConfig.maxOpacity }}</span>
       </mat-list-item>
       <mat-list-item>
         <span class="label">Blur</span>
-        <mat-slider thumbLabel min="0" max="1" step=".05"
+        <mat-slider min="0" max="1" step=".05"
           [(ngModel)]="lhConfig.blur" (ngModelChange)="resetDataAndSettings()">
         </mat-slider>
         <span>{{ lhConfig.blur }}</span>

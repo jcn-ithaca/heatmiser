@@ -68,6 +68,10 @@ export class AppComponent implements OnInit {
   muteMinimum = 5;
   highlightConvergence = false;
   highlightFactor = 10;
+  opacityLevel = 1;
+  opacityLabels = ['Low', 'Medium', 'High'];
+  hotspotIndex = 0;
+  hotspotOptions = ['Based on local maximum', 'Based on global maximum'];
 
   gradMulti = {
     0.0 : '#0000FF',
@@ -171,6 +175,27 @@ export class AppComponent implements OnInit {
   };
 
   constructor() {
+  }
+
+  hotspotChanged() {
+    this.lhConfig.useLocalExtrema = (this.hotspotIndex === 0);
+    this.settingsChanged();
+  }
+
+  opacityChanged() {
+    if (this.opacityLevel === 0) {
+      this.lhConfig.minOpacity = .25;
+      this.lhConfig.maxOpacity = .45;
+    }
+    if (this.opacityLevel === 1) {
+      this.lhConfig.minOpacity = .35;
+      this.lhConfig.maxOpacity = .6;
+    }
+    if (this.opacityLevel === 2) {
+      this.lhConfig.minOpacity = .4;
+      this.lhConfig.maxOpacity = .75;
+    }
+    this.settingsChanged();
   }
 
   ngOnInit() {

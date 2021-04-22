@@ -9,10 +9,27 @@
   align-items: flex-start !important;
 }
 
+mat-form-field {
+  width: 250px;
+}
+
+mat-list {
+  width: 100%;
+}
+
+//mat-list-item {
+//  margin-bottom: 8px;
+//}
+
 mat-checkbox {
   margin-right: 15px;
 }
 
 span.label {
   width: 100px;
+}
+
+span.sliderVal {
+  width: 100px;
+  margin-left: 10px;
 }

@@ -31,30 +31,6 @@
           </mat-select>
         </mat-form-field>
       </mat-list-item>
-    <hr>
-      <div mat-subheader>Under the Hood</div>
-      <mat-list-item>
-        <mat-checkbox [(ngModel)]="lhConfig.scaleRadius" (ngModelChange)="toggleScaling()">
-        </mat-checkbox>
-        <span> Scale Radius </span>
-      </mat-list-item>
-      <mat-list-item>
-        <mat-checkbox [(ngModel)]="muteLowActivity" (ngModelChange)="refilterData()">
-        </mat-checkbox>
-        <span> Mute Low Activity </span>
-      </mat-list-item>
-      <mat-list-item>
-        <mat-checkbox [(ngModel)]="highlightConvergence" (ngModelChange)="refilterData()">
-        </mat-checkbox>
-        <span> Highlight Convergence </span>
-      </mat-list-item>
-      <mat-list-item>
-        <span class="label">Radius</span>
-        <mat-slider [min]="radMin" [max]="radMax" [step]="radStep"
-          [(ngModel)]="lhConfig.radius" (ngModelChange)="settingsChanged()">
-        </mat-slider>
-        <span>{{ lhConfig.radius }}</span>
-      </mat-list-item>
       <mat-list-item>
         <span class="label">Min Opacity</span>
         <mat-slider min="0" max="1" step=".05"
@@ -70,14 +46,13 @@
         <span>{{ lhConfig.maxOpacity }}</span>
       </mat-list-item>
       <mat-list-item>
-        <span class="label">Blur</span>
-        <mat-slider min="0" max="1" step=".05"
-          [(ngModel)]="lhConfig.blur" (ngModelChange)="resetDataAndSettings()">
-        </mat-slider>
-        <span>{{ lhConfig.blur }}</span>
+        <button mat-flat-button color="primary" (click)="applySettings(1)">Restore Defaults</button>
       </mat-list-item>
       <mat-list-item>
-        <button mat-flat-button color="primary" (click)="applySettings(1)">Restore Defaults</button>
+        Zoom: {{zoomLevel}}
+      </mat-list-item>
+      <mat-list-item>
+        Radius: {{lhConfig.radius}}px
       </mat-list-item>
     </mat-list>
   </mat-grid-tile>
@@ -95,3 +70,32 @@
 
 
 <!--[leafletLayers]="mapLayers"-->
+
+<!--<mat-list-item>-->
+<!--  <mat-checkbox [(ngModel)]="muteLowActivity" (ngModelChange)="refilterData()">-->
+<!--  </mat-checkbox>-->
+<!--  <span> Mute Low Activity </span>-->
+<!--</mat-list-item>-->
+<!--<mat-list-item>-->
+<!--  <mat-checkbox [(ngModel)]="highlightConvergence" (ngModelChange)="refilterData()">-->
+<!--  </mat-checkbox>-->
+<!--  <span> Highlight Convergence </span>-->
+<!--</mat-list-item>-->
+<!--<mat-list-item>-->
+<!--  <span class="label">Blur</span>-->
+<!--  <mat-slider min="0" max="1" step=".05" [(ngModel)]="lhConfig.blur" (ngModelChange)="resetDataAndSettings()">-->
+<!--  </mat-slider>-->
+<!--  <span>{{ lhConfig.blur }}</span>-->
+<!--</mat-list-item>-->
+<!--<mat-list-item>-->
+<!--  <mat-checkbox [(ngModel)]="lhConfig.scaleRadius" (ngModelChange)="toggleScaling()">-->
+<!--  </mat-checkbox>-->
+<!--  <span> Scale Radius </span>-->
+<!--</mat-list-item>-->
+<!--<mat-list-item>-->
+<!--  <span class="label">Radius</span>-->
+<!--  <mat-slider [min]="radMin" [max]="radMax" [step]="radStep"-->
+<!--              [(ngModel)]="lhConfig.radius" (ngModelChange)="settingsChanged()">-->
+<!--  </mat-slider>-->
+<!--  <span>{{ lhConfig.radius }}</span>-->
+<!--</mat-list-item>-->

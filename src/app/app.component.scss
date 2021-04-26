@@ -17,10 +17,6 @@ mat-list {
   width: 100%;
 }
 
-//mat-list-item {
-//  margin-bottom: 8px;
-//}
-
 mat-checkbox {
   margin-right: 15px;
 }
@@ -32,4 +28,44 @@ span.label {
 span.sliderVal {
   width: 100px;
   margin-left: 10px;
+}
+
+div.colorRamp {
+  border: thin solid gray;
+  width: 188px;
+  height: 18px;
+  margin-top: 5px;
+  margin-bottom: 5px;
+  //background-image: linear-gradient(to right, #0000ff , #adff2f, #FFFF00 ,#feb24c, #bd0026);
+}
+
+div.colorRamp.radioRamp {
+  width: calc(100% - 31px);
+  display: inline-block;
+}
+
+mat-expansion-panel.colorPanel {
+  width: 90%;
+
+  mat-panel-title {
+    align-items: center;
+  }
+}
+
+mat-radio-button {
+  width: 30px;
+}
+
+mat-list-item.colorsRadioItem mat-list-item-content {
+  padding: 0px !important;
+}
+
+mat-list-item.colorsRadioItem {
+  height: 28px;
+}
+
+mat-radio-group.colorsGroup {
+  display: flex;
+  flex-direction: column;
+  margin: 0px 0px 5px 0px;
 }

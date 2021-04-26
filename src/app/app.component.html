@@ -1,70 +1,95 @@
-<mat-grid-list cols="4" rowHeight="100%">
-  <mat-grid-tile colspan="1" rowspan="1" style="min-width: 300px">
-    <mat-list>
-      <mat-list-item>
-        <mat-form-field>
-          <mat-label>Colors</mat-label>
-          <mat-select [(ngModel)]="whichGradient" (ngModelChange)="settingsChanged()">
-            <mat-option *ngFor="let g of gradients" [value]="g.gradient" class="rampOption">
-              {{g.label}}
-            </mat-option>
-          </mat-select>
-        </mat-form-field>
-      </mat-list-item>
-      <mat-list-item>
-        <mat-form-field>
-          <mat-label>Opacity</mat-label>
-          <mat-select [(ngModel)]="opacityLevel" (ngModelChange)="opacityChanged()">
-            <mat-option *ngFor="let ol of opacityLabels; let i = index" [value]="i">
-              {{ol}}
-            </mat-option>
-          </mat-select>
-        </mat-form-field>
-      </mat-list-item>
-      <mat-list-item>
-        <mat-form-field>
-          <mat-label>Hotspots</mat-label>
-          <mat-select [(ngModel)]="hotspotIndex" (ngModelChange)="hotspotChanged()">
-            <mat-option *ngFor="let opt of hotspotOptions; let i = index" [value]="i">
-              {{opt}}
-            </mat-option>
-          </mat-select>
-        </mat-form-field>
-      </mat-list-item>
-      <mat-list-item>
-        <span class="label">Min Opacity</span>
-        <mat-slider min="0" max="1" step=".05"
-          [(ngModel)]="lhConfig.minOpacity" (ngModelChange)="settingsChanged()">
-        </mat-slider>
-        <span>{{ lhConfig.minOpacity }}</span>
-      </mat-list-item>
-      <mat-list-item>
-        <span class="label">Max Opacity</span>
-        <mat-slider min="0" max="1" step=".05"
-          [(ngModel)]="lhConfig.maxOpacity" (ngModelChange)="settingsChanged()">
-        </mat-slider>
-        <span>{{ lhConfig.maxOpacity }}</span>
-      </mat-list-item>
-      <mat-list-item>
-        <button mat-flat-button color="primary" (click)="applySettings(1)">Restore Defaults</button>
-      </mat-list-item>
-      <mat-list-item>
-        Zoom: {{zoomLevel}}
-      </mat-list-item>
-      <mat-list-item>
-        Radius: {{lhConfig.radius}}px
-      </mat-list-item>
-    </mat-list>
-  </mat-grid-tile>
+<mat-grid-list cols="5" rowHeight="100%">
+    <mat-grid-tile colspan="1" rowspan="1" style="min-width: 300px">
+        <mat-expansion-panel class="colorPanel">
+            <mat-expansion-panel-header>
+                <mat-panel-title>
+                    Colors
+                </mat-panel-title>
+                <mat-panel-description>
+                    <div [style.background-image]="whichGradient | gradientCSS" class="colorRamp"></div>
+                </mat-panel-description>
+            </mat-expansion-panel-header>
+            <!--      <label id="colors-radio-group-label">Choose a color ramp</label>-->
+            <mat-radio-group [(ngModel)]="whichGradient" aria-labelledby="colors-radio-group-label"
+                             class="colorsGroup">
+                <mat-list>
+                    <mat-list-item *ngFor="let g of gradients" class="colorsRadioItem">
+                        <mat-radio-button [value]="g.gradient" class="colorsRadioBtn">
+                        </mat-radio-button>
+                        <div [style.background-image]="g.gradient | gradientCSS" class="colorRamp radioRamp"></div>
+                    </mat-list-item>
+                </mat-list>
+            </mat-radio-group>
+        </mat-expansion-panel>
 
-  <mat-grid-tile colspan="3" rowspan="1">
-    <div class="map" leaflet
-         [leafletOptions]="leafletOpts"
-         [leafletLayers]="heatLayers"
-         [leafletLayersControl]="layersControl"
-         (leafletMapReady)="onMapReady($event)">
-    </div>
-  </mat-grid-tile>
+    </mat-grid-tile>
+
+    <mat-grid-tile colspan="3" rowspan="1">
+        <div (leafletMapReady)="onMapReady($event)" [leafletLayersControl]="layersControl"
+             [leafletLayers]="heatLayers"
+             [leafletOptions]="leafletOpts"
+             class="map"
+             leaflet>
+        </div>
+    </mat-grid-tile>
+
+    <mat-grid-tile colspan="1" rowspan="1" style="min-width: 300px">
+        <mat-list>
+            <mat-list-item>
+                <mat-form-field>
+                    <mat-label>Colors</mat-label>
+                    <mat-select (ngModelChange)="settingsChanged()" [(ngModel)]="whichGradient">
+                        <mat-option *ngFor="let g of gradients" [value]="g.gradient" class="rampOption">
+                            {{g.label}}
+                        </mat-option>
+                    </mat-select>
+                </mat-form-field>
+            </mat-list-item>
+            <mat-list-item>
+                <mat-form-field>
+                    <mat-label>Opacity</mat-label>
+                    <mat-select (ngModelChange)="opacityChanged()" [(ngModel)]="opacityLevel">
+                        <mat-option *ngFor="let ol of opacityLabels; let i = index" [value]="i">
+                            {{ol}}
+                        </mat-option>
+                    </mat-select>
+                </mat-form-field>
+            </mat-list-item>
+            <mat-list-item>
+                <mat-form-field>
+                    <mat-label>Hotspots</mat-label>
+                    <mat-select (ngModelChange)="hotspotChanged()" [(ngModel)]="hotspotIndex">
+                        <mat-option *ngFor="let opt of hotspotOptions; let i = index" [value]="i">
+                            {{opt}}
+                        </mat-option>
+                    </mat-select>
+                </mat-form-field>
+            </mat-list-item>
+            <mat-list-item>
+                <span class="label">Min Opacity</span>
+                <mat-slider (ngModelChange)="settingsChanged()" [(ngModel)]="lhConfig.minOpacity" max="1"
+                            min="0" step=".05">
+                </mat-slider>
+                <span>{{ lhConfig.minOpacity }}</span>
+            </mat-list-item>
+            <mat-list-item>
+                <span class="label">Max Opacity</span>
+                <mat-slider (ngModelChange)="settingsChanged()" [(ngModel)]="lhConfig.maxOpacity" max="1"
+                            min="0" step=".05">
+                </mat-slider>
+                <span>{{ lhConfig.maxOpacity }}</span>
+            </mat-list-item>
+            <mat-list-item>
+                <button (click)="applySettings(1)" color="primary" mat-flat-button>Restore Defaults</button>
+            </mat-list-item>
+            <mat-list-item>
+                Zoom: {{zoomLevel}}
+            </mat-list-item>
+            <mat-list-item>
+                Radius: {{lhConfig.radius}}px
+            </mat-list-item>
+        </mat-list>
+    </mat-grid-tile>
 
 </mat-grid-list>
 

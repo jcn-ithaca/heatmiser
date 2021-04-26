@@ -29,17 +29,21 @@ import tracks_23 from 'testdata/a23.json';
 type HeatmapOverlayConstructor = new(cfg: any) => any;
 declare var HeatmapOverlay: HeatmapOverlayConstructor;
 
-interface OioDatum {
+export interface OioDatum {
   count: number;
   bin: {latitude: number, longitude: number};
 }
 
-interface HmDatum {
+export interface HmDatum {
   lat: number;
   lng: number;
   count: number;
   // binID: string;
   // numDevices: number;
+}
+
+export interface HmGradient {
+  [stop: string]: string;
 }
 
 @Component({
@@ -76,79 +80,84 @@ export class AppComponent implements OnInit {
   opacityLevel = 1;
   opacityLabels = ['Low', 'Medium', 'High'];
   hotspotIndex = 0;
-  hotspotOptions = ['Based on local maximum', 'Based on global maximum'];
+  hotspotOptions = ['Show local maximum', 'Show global maximum'];
   zoomLevel = 0;
 
-  gradMulti: object = {
+  gradMulti: HmGradient = {
+    // 0.0 : 'blue',
+    // 0.1 : 'green',
+    // 0.2 : 'yellow',
+    // 0.4 : 'orange',
+    // 1.0 : 'red'
     0.0 : '#0000FF',
     0.25 : '#adff2f',
     0.5 : '#FFFF00',
     0.75 : '#feb24c',
     1.0 : '#bd0026',
   };
-  gradYOR1: object = {
+  gradYOR1: HmGradient = {
     0.0 : '#eed976',
     0.4 : '#feb24c',
     0.6 : '#fd8d3c',
     1.0 : '#bd0026',
   };
-  gradYOR2: object = {
+  gradYOR2: HmGradient = {
     0.0 : '#fed976',
     0.9 : '#fd8d3c',
     1.0 : '#e31a1c',
   };
-  gradYOR3: object = {
+  gradYOR3: HmGradient = {
     0.0 : '#fed976',
     0.1 : '#fd8d3c',
     1.0 : '#e31a1c',
   };
-  gradYOR4: object = {
+  gradYOR4: HmGradient = {
     0.0 : '#eed976',
     0.4 : '#feb24c',
     0.6 : '#fd8d3c',
     1.0 : '#bd0026',
   };
-  gradBP: object = {
+  gradBP: HmGradient = {
     0.0 : '#b3cde3',
     0.5 : '#8856a7',
     1.0 : '#810f7c',
   };
-  gradO: object = {
+  gradO: HmGradient = {
     0.0 : '#fdbe85',
     0.3 : '#fd8d3c',
     0.7 : '#e6550d',
     1.0 : '#a63603',
   };
-  gradR: object = {
+  gradR: HmGradient = {
     0.0 : '#fcae91',
     0.3 : '#fb6a4a',
     0.7 : '#de2d26',
     1.0 : '#a50f15',
   };
-  gradB: object = {
+  gradB: HmGradient = {
     0.0 : '#bdd7e7',
     0.3 : '#6baed6',
     0.7 : '#3182bd',
     1.0 : '#08519c',
   };
-  gradP: object = {
+  gradP: HmGradient = {
     0.0 : '#cbc9e2',
     0.3 : '#9e9ac8',
     0.7 : '#756bb1',
     1.0 : '#54278f',
   };
-  gradG: object = {
+  gradG: HmGradient = {
     0.0 : '#bae4b3',
     0.3 : '#74c476',
     0.7 : '#31a354',
     1.0 : '#006d2c',
   };
-  whichGradient: object = this.gradMulti;
+  whichGradient: HmGradient = this.gradMulti;
   gradients = [
     {label: 'Yellow-Orange-Red #1', gradient: this.gradYOR1},
-    {label: 'Yellow-Orange-Red #2', gradient: this.gradYOR2},
-    {label: 'Yellow-Orange-Red #3', gradient: this.gradYOR3},
-    {label: 'Yellow-Orange-Red #4', gradient: this.gradYOR4},
+    // {label: 'Yellow-Orange-Red #2', gradient: this.gradYOR2},
+    // {label: 'Yellow-Orange-Red #3', gradient: this.gradYOR3},
+    // {label: 'Yellow-Orange-Red #4', gradient: this.gradYOR4},
     {label: 'Oranges', gradient: this.gradO},
     {label: 'Reds', gradient: this.gradR},
     {label: 'Blue-Purple', gradient: this.gradBP},

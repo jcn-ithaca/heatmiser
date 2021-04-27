@@ -1,4 +1,4 @@
-import {ChangeDetectorRef, Component, OnInit} from '@angular/core';
+import {ChangeDetectorRef, Component, OnDestroy, OnInit} from '@angular/core';
 import {latLng, tileLayer} from 'leaflet';
 import * as L from 'leaflet';
 import 'leaflet-heatmap';
@@ -26,6 +26,7 @@ import tracks_21 from 'testdata/a21.json';
 import tracks_22 from 'testdata/a22.json';
 import tracks_23 from 'testdata/a23.json';
 import {FormBuilder, FormGroup} from '@angular/forms';
+import {Subscription} from 'rxjs';
 
 type HeatmapOverlayConstructor = new(cfg: any) => any;
 declare var HeatmapOverlay: HeatmapOverlayConstructor;
@@ -52,7 +53,7 @@ export interface HmGradient {
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss']
 })
-export class AppComponent implements OnInit {
+export class AppComponent implements OnInit, OnDestroy {
   leafletOpts;
   layersControl;
   heatLayer: any;   // leaflet-heatmap
@@ -80,11 +81,13 @@ export class AppComponent implements OnInit {
   // highlightFactor = 10;
   opacityLevel = 1;
   opacityLabels = ['Low', 'Medium', 'High'];
-  hotspotIndex = 0;
+  // hotspotIndex = 0;
   hotspotOptions = ['Show local maximum', 'Show global maximum'];
   zoomLevel = 0;
   heatmapForm: FormGroup;
   get currGradient() { return this.heatmapForm.get('colors').value; }
+  radii = [5, 6, 7, 10, 14, 19, 23, 32, 40, 50, 60, 70, 85, 100, 115, 132, 150, 170, 190, 300, 500, 800, 1200];
+  sub: Subscription;
 
   gradMulti: HmGradient = {
     // 0.0 : 'blue',
@@ -155,7 +158,6 @@ export class AppComponent implements OnInit {
     0.7 : '#31a354',
     1.0 : '#006d2c',
   };
-  whichGradient: HmGradient = this.gradMulti;
   gradients = [this.gradMulti, this.gradYOR1, this.gradO, this.gradR, this.gradBP, this.gradB, this.gradP, this.gradG];
 
   // {label: 'Rainbow', gradient: this.gradMulti},
@@ -190,10 +192,10 @@ export class AppComponent implements OnInit {
   constructor(private cdr: ChangeDetectorRef, public fb: FormBuilder) {
   }
 
-  hotspotChanged() {
-    this.lhConfig.useLocalExtrema = (this.hotspotIndex === 0);
-    this.settingsChanged();
-  }
+  // hotspotChanged() {
+  //   this.lhConfig.useLocalExtrema = (this.hotspotIndex === 0);
+  //   this.settingsChanged();
+  // }
 
   opacityChanged() {
     if (this.opacityLevel === 0) {
@@ -215,18 +217,19 @@ export class AppComponent implements OnInit {
     this.heatmapForm = this.fb.group({
       colors: [this.gradMulti],
       minOpacity: ['0.4'],
-      maxOpacity: ['0.6']
+      maxOpacity: ['0.6'],
+      hotspot: [0]
     });
   }
 
   ngOnInit() {
     this.initFormModel();
 
-    this.heatmapForm.valueChanges.subscribe(val => {
-      console.log(`>>> Gradient is now ${JSON.stringify(val.colors)}`);
-      this.whichGradient = val.colors;
+    this.sub = this.heatmapForm.valueChanges.subscribe(val => {
+      this.lhConfig.gradient = val.colors;
       this.lhConfig.minOpacity = val.minOpacity;
       this.lhConfig.maxOpacity = val.maxOpacity;
+      this.lhConfig.useLocalExtrema = (val.hotspot === 0);
       this.settingsChanged();
     });
 
@@ -281,6 +284,12 @@ export class AppComponent implements OnInit {
     this.addLeafletHeatmap();
   }
 
+  ngOnDestroy() {
+    if (this.sub) {
+      this.sub.unsubscribe();
+    }
+  }
+
   updateDataMax(): void {
     this.dataMax = 0;
     const whichData = this.combinedData;  // allow boosted cells to exceed dataMax?
@@ -298,7 +307,7 @@ export class AppComponent implements OnInit {
   setDefaultConfig(n: number): void {
     switch (n) {
       case 1:
-        this.whichGradient = this.gradMulti;
+        this.lhConfig.gradient = this.gradMulti;
         this.lhConfig.useLocalExtrema = true;
         this.lhConfig.scaleRadius = false;
         this.lhConfig.radius = 35;
@@ -334,8 +343,6 @@ export class AppComponent implements OnInit {
 
   // Update leaflet-heatmap layer
   settingsChanged() {
-    this.lhConfig.gradient = this.whichGradient;
-
     if (this.heatLayer) {
       const startTime = performance.now();
       // Hack to redraw heatmap (https://github.com/pa7/heatmap.js/issues/290)
@@ -397,9 +404,9 @@ export class AppComponent implements OnInit {
 
   onZoomEnd(map: any, ev: any) {
     this.zoomLevel = map.getZoom();
-    console.log(`>>> Zoom is now: ${this.zoomLevel};`);
-    const zoomFactor = (this.zoomLevel * 11) / 17;
-    this.lhConfig.radius = Math.round((zoomFactor * zoomFactor) + 5);
+    // const zoomFactor = this.zoomLevel * .75;
+    // this.lhConfig.radius = Math.round((zoomFactor * zoomFactor) + 5);
+    this.lhConfig.radius = this.radii[this.zoomLevel];
     this.settingsChanged();
     this.cdr.detectChanges();
   }

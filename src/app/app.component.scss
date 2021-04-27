@@ -21,6 +21,10 @@ mat-checkbox {
   margin-right: 15px;
 }
 
+form-item {
+  width: 100%;
+}
+
 span.label {
   width: 100px;
 }
@@ -49,6 +53,13 @@ mat-expansion-panel.colorPanel {
 
   mat-panel-title {
     align-items: center;
+  }
+  mat-expansion-panel-header {
+    padding: 0px;
+
+    span.mat-expansion-indicator {
+      margin-left: 6px !important;
+    }
   }
 }
 

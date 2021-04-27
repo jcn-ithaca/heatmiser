@@ -25,6 +25,7 @@ import tracks_20 from 'testdata/a20.json';
 import tracks_21 from 'testdata/a21.json';
 import tracks_22 from 'testdata/a22.json';
 import tracks_23 from 'testdata/a23.json';
+import {FormBuilder, FormGroup} from '@angular/forms';
 
 type HeatmapOverlayConstructor = new(cfg: any) => any;
 declare var HeatmapOverlay: HeatmapOverlayConstructor;
@@ -82,6 +83,8 @@ export class AppComponent implements OnInit {
   hotspotIndex = 0;
   hotspotOptions = ['Show local maximum', 'Show global maximum'];
   zoomLevel = 0;
+  heatmapForm: FormGroup;
+  get currGradient() { return this.heatmapForm.get('colors').value; }
 
   gradMulti: HmGradient = {
     // 0.0 : 'blue',
@@ -153,24 +156,19 @@ export class AppComponent implements OnInit {
     1.0 : '#006d2c',
   };
   whichGradient: HmGradient = this.gradMulti;
-  gradients = [
-    {label: 'Yellow-Orange-Red #1', gradient: this.gradYOR1},
-    // {label: 'Yellow-Orange-Red #2', gradient: this.gradYOR2},
-    // {label: 'Yellow-Orange-Red #3', gradient: this.gradYOR3},
-    // {label: 'Yellow-Orange-Red #4', gradient: this.gradYOR4},
-    {label: 'Oranges', gradient: this.gradO},
-    {label: 'Reds', gradient: this.gradR},
-    {label: 'Blue-Purple', gradient: this.gradBP},
-    {label: 'Blues', gradient: this.gradB},
-    {label: 'Purples', gradient: this.gradP},
-    {label: 'Greens', gradient: this.gradG},
-    {label: 'Rainbow', gradient: this.gradMulti}
-  ];
+  gradients = [this.gradMulti, this.gradYOR1, this.gradO, this.gradR, this.gradBP, this.gradB, this.gradP, this.gradG];
+
+  // {label: 'Rainbow', gradient: this.gradMulti},
+  // {label: 'Yellow-Orange-Red #1', gradient: this.gradYOR1},
+  // {label: 'Oranges', gradient: this.gradO},
+  // {label: 'Reds', gradient: this.gradR},
+  // {label: 'Blue-Purple', gradient: this.gradBP},
+  // {label: 'Blues', gradient: this.gradB},
+  // {label: 'Purples', gradient: this.gradP},
+  // {label: 'Greens', gradient: this.gradG},
 
   lhConfig = {
-    gradient: this.gradYOR1,
-    // radius should be small ONLY if scaleRadius is true (or small radius is intended)
-    // if scaleRadius is false it will be the constant radius used in pixels
+    gradient: this.gradMulti,
     radius: 35,
     minOpacity: .4,
     maxOpacity: .6,
@@ -189,7 +187,7 @@ export class AppComponent implements OnInit {
     valueField: 'count'
   };
 
-  constructor(private cdr: ChangeDetectorRef) {
+  constructor(private cdr: ChangeDetectorRef, public fb: FormBuilder) {
   }
 
   hotspotChanged() {
@@ -213,7 +211,25 @@ export class AppComponent implements OnInit {
     this.settingsChanged();
   }
 
+  initFormModel() {
+    this.heatmapForm = this.fb.group({
+      colors: [this.gradMulti],
+      minOpacity: ['0.4'],
+      maxOpacity: ['0.6']
+    });
+  }
+
   ngOnInit() {
+    this.initFormModel();
+
+    this.heatmapForm.valueChanges.subscribe(val => {
+      console.log(`>>> Gradient is now ${JSON.stringify(val.colors)}`);
+      this.whichGradient = val.colors;
+      this.lhConfig.minOpacity = val.minOpacity;
+      this.lhConfig.maxOpacity = val.maxOpacity;
+      this.settingsChanged();
+    });
+
     const baseMap1 = tileLayer('http://maps.wikimedia.org/osm-intl/{z}/{x}/{y}.png', {
       detectRetina: true,
       attribution: '&amp;copy; &lt;a href="https://www.openstreetmap.org/copyright"&gt;OpenStreetMap&lt;/a&gt; contributors'
@@ -387,6 +403,7 @@ export class AppComponent implements OnInit {
     this.settingsChanged();
     this.cdr.detectChanges();
   }
+
 }
 
 

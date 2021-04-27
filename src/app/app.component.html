@@ -22,21 +22,29 @@
             </mat-radio-group>
         </mat-expansion-panel>
 
+        <hr>
+        <h4>Opacity</h4>
         <div class="formItem">
-            <span class="label">Min Opacity</span>
+            <span class="label">Min</span>
             <mat-slider formControlName="minOpacity" max="1" min="0" step=".05">
             </mat-slider>
             <span>{{ lhConfig.minOpacity }}</span>
         </div>
         <div class="formItem">
-            <span class="label">Max Opacity</span>
+            <span class="label">Max</span>
             <mat-slider formControlName="maxOpacity" max="1" min="0" step=".05">
             </mat-slider>
             <span>{{ lhConfig.maxOpacity }}</span>
         </div>
-        <mat-form-field formControlName="hotspot">
+        <button (click)="setOpacityLevel(0)">Low</button>
+        <button (click)="setOpacityLevel(1)">Medium</button>
+        <button (click)="setOpacityLevel(2)">High</button>
+
+        <hr>
+
+        <mat-form-field>
             <mat-label>Hotspots</mat-label>
-            <mat-select>
+            <mat-select formControlName="hotspot">
                 <mat-option *ngFor="let opt of hotspotOptions; let i = index" [value]="i">
                     {{opt}}
                 </mat-option>
@@ -57,18 +65,8 @@
 
     <mat-grid-tile colspan="1" rowspan="1" style="min-width: 300px">
         <mat-list>
-<!--            <mat-list-item>-->
-<!--                <mat-form-field>-->
-<!--                    <mat-label>Opacity</mat-label>-->
-<!--                    <mat-select (ngModelChange)="opacityChanged()" [(ngModel)]="opacityLevel">-->
-<!--                        <mat-option *ngFor="let ol of opacityLabels; let i = index" [value]="i">-->
-<!--                            {{ol}}-->
-<!--                        </mat-option>-->
-<!--                    </mat-select>-->
-<!--                </mat-form-field>-->
-<!--            </mat-list-item>-->
             <mat-list-item>
-                <button (click)="applySettings(1)" color="primary" mat-flat-button>Restore Defaults</button>
+                <button (click)="restoreDefaults()" color="primary" mat-flat-button>Restore Defaults</button>
             </mat-list-item>
             <mat-list-item>
                 Zoom: {{zoomLevel}}
@@ -121,3 +119,13 @@
 <!--  </mat-slider>-->
 <!--  <span>{{ lhConfig.radius }}</span>-->
 <!--</mat-list-item>-->
+<!--            <mat-list-item>-->
+<!--                <mat-form-field>-->
+<!--                    <mat-label>Opacity</mat-label>-->
+<!--                    <mat-select (ngModelChange)="opacityChanged()" [(ngModel)]="opacityLevel">-->
+<!--                        <mat-option *ngFor="let ol of opacityLabels; let i = index" [value]="i">-->
+<!--                            {{ol}}-->
+<!--                        </mat-option>-->
+<!--                    </mat-select>-->
+<!--                </mat-form-field>-->
+<!--            </mat-list-item>-->

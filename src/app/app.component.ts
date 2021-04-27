@@ -31,6 +31,13 @@ import {Subscription} from 'rxjs';
 type HeatmapOverlayConstructor = new(cfg: any) => any;
 declare var HeatmapOverlay: HeatmapOverlayConstructor;
 
+export interface HeatmapSettings {
+  gradient: HmGradient;
+  minOpacity: number;
+  maxOpacity: number;
+  useLocalMax: boolean;
+}
+
 export interface OioDatum {
   count: number;
   bin: {latitude: number, longitude: number};
@@ -40,12 +47,10 @@ export interface HmDatum {
   lat: number;
   lng: number;
   count: number;
-  // binID: string;
-  // numDevices: number;
 }
 
 export interface HmGradient {
-  [stop: string]: string;
+  [stop: string]: string;   // e.g. {'0.5' : 'orange'}
 }
 
 @Component({
@@ -159,6 +164,7 @@ export class AppComponent implements OnInit, OnDestroy {
     1.0 : '#006d2c',
   };
   gradients = [this.gradMulti, this.gradYOR1, this.gradO, this.gradR, this.gradBP, this.gradB, this.gradP, this.gradG];
+  settings: HeatmapSettings = {gradient: this.gradMulti, minOpacity: .35, maxOpacity: .65, useLocalMax: true};
 
   // {label: 'Rainbow', gradient: this.gradMulti},
   // {label: 'Yellow-Orange-Red #1', gradient: this.gradYOR1},
@@ -197,21 +203,21 @@ export class AppComponent implements OnInit, OnDestroy {
   //   this.settingsChanged();
   // }
 
-  opacityChanged() {
-    if (this.opacityLevel === 0) {
-      this.lhConfig.minOpacity = .25;
-      this.lhConfig.maxOpacity = .45;
-    }
-    if (this.opacityLevel === 1) {
-      this.lhConfig.minOpacity = .35;
-      this.lhConfig.maxOpacity = .6;
-    }
-    if (this.opacityLevel === 2) {
-      this.lhConfig.minOpacity = .4;
-      this.lhConfig.maxOpacity = .75;
-    }
-    this.settingsChanged();
-  }
+  // opacityChanged() {
+  //   if (this.opacityLevel === 0) {
+  //     this.lhConfig.minOpacity = .25;
+  //     this.lhConfig.maxOpacity = .45;
+  //   }
+  //   if (this.opacityLevel === 1) {
+  //     this.lhConfig.minOpacity = .35;
+  //     this.lhConfig.maxOpacity = .6;
+  //   }
+  //   if (this.opacityLevel === 2) {
+  //     this.lhConfig.minOpacity = .4;
+  //     this.lhConfig.maxOpacity = .75;
+  //   }
+  //   this.applySettingsToHeatmapLayer();
+  // }
 
   initFormModel() {
     this.heatmapForm = this.fb.group({
@@ -226,11 +232,11 @@ export class AppComponent implements OnInit, OnDestroy {
     this.initFormModel();
 
     this.sub = this.heatmapForm.valueChanges.subscribe(val => {
-      this.lhConfig.gradient = val.colors;
-      this.lhConfig.minOpacity = val.minOpacity;
-      this.lhConfig.maxOpacity = val.maxOpacity;
-      this.lhConfig.useLocalExtrema = (val.hotspot === 0);
-      this.settingsChanged();
+      this.settings.gradient = val.colors;
+      this.settings.minOpacity = val.minOpacity;
+      this.settings.maxOpacity = val.maxOpacity;
+      this.settings.useLocalMax = (val.hotspot === 0);
+      this.applySettingsToHeatmapLayer(this.settings);
     });
 
     const baseMap1 = tileLayer('http://maps.wikimedia.org/osm-intl/{z}/{x}/{y}.png', {
@@ -279,7 +285,7 @@ export class AppComponent implements OnInit, OnDestroy {
     };
 
     this.zoomLevel = 7;
-    this.setDefaultConfig(1);
+    // this.restoreDefaults();
     this.combineData();
     this.addLeafletHeatmap();
   }
@@ -288,6 +294,18 @@ export class AppComponent implements OnInit, OnDestroy {
     if (this.sub) {
       this.sub.unsubscribe();
     }
+  }
+
+  setOpacityLevel(level: number) {
+    let newVals = {minOpacity: .35, maxOpacity: .65};
+
+    if (level === 0) {
+      newVals = {minOpacity: .25, maxOpacity: .45};
+    }
+    if (level === 2) {
+      newVals = {minOpacity: .5, maxOpacity: .75};
+    }
+    this.heatmapForm.patchValue(newVals);
   }
 
   updateDataMax(): void {
@@ -304,45 +322,22 @@ export class AppComponent implements OnInit, OnDestroy {
     }
   }
 
-  setDefaultConfig(n: number): void {
-    switch (n) {
-      case 1:
-        this.lhConfig.gradient = this.gradMulti;
-        this.lhConfig.useLocalExtrema = true;
-        this.lhConfig.scaleRadius = false;
-        this.lhConfig.radius = 35;
-        this.lhConfig.minOpacity = .35;
-        this.lhConfig.maxOpacity = .65;
-        this.muteLowActivity = false;
-        this.highlightConvergence = false;
-        break;
-      case 2:
-        break;
-    }
+  restoreDefaults() {
+    this.settings.gradient = this.gradMulti;
+    this.settings.minOpacity = 0.35;
+    this.settings.maxOpacity = 0.65;
+    this.settings.useLocalMax = true;
+    this.applySettingsToHeatmapLayer(this.settings);
   }
 
-  applySettings(n: number) {
-    this.setDefaultConfig(n);
-    this.settingsChanged();
-  }
-
-  toggleScaling() {
-    if (this.lhConfig.scaleRadius) {
-      this.lhConfig.radius =  0.25;
-      this.radMin = .05;
-      this.radMax = 1;
-      this.radStep = .05;
-    } else {
-      this.lhConfig.radius = 30;
-      this.radMin = 20;
-      this.radMax = 60;
-      this.radStep = 5;
-    }
-    this.settingsChanged();
-  }
 
   // Update leaflet-heatmap layer
-  settingsChanged() {
+  applySettingsToHeatmapLayer(opts: HeatmapSettings) {
+    this.lhConfig.gradient = opts.gradient;
+    this.lhConfig.minOpacity = opts.minOpacity;
+    this.lhConfig.maxOpacity = opts.maxOpacity;
+    this.lhConfig.useLocalExtrema = opts.useLocalMax;
+
     if (this.heatLayer) {
       const startTime = performance.now();
       // Hack to redraw heatmap (https://github.com/pa7/heatmap.js/issues/290)
@@ -399,7 +394,7 @@ export class AppComponent implements OnInit, OnDestroy {
     console.log('>>> Map is ready');
     map.on('zoomend', ev => this.onZoomEnd(map, ev) );
     (map as any)._onResize();
-    setTimeout(() => this.settingsChanged(), 200);
+    setTimeout(() => this.applySettingsToHeatmapLayer(this.settings), 200);
   }
 
   onZoomEnd(map: any, ev: any) {
@@ -407,7 +402,7 @@ export class AppComponent implements OnInit, OnDestroy {
     // const zoomFactor = this.zoomLevel * .75;
     // this.lhConfig.radius = Math.round((zoomFactor * zoomFactor) + 5);
     this.lhConfig.radius = this.radii[this.zoomLevel];
-    this.settingsChanged();
+    this.applySettingsToHeatmapLayer(this.settings);
     this.cdr.detectChanges();
   }
 
@@ -454,3 +449,18 @@ export class AppComponent implements OnInit, OnDestroy {
 
 // tslint:disable-next-line:max-line-length
 // const locations: HmDatum[] = arr.map(d => ({lat: d.bin.latitude, lng: d.bin.longitude, count: d.count, binID: `${d.bin.latitude}:${d.bin.longitude}`}));
+
+// toggleScaling() {
+//   if (this.lhConfig.scaleRadius) {
+//     this.lhConfig.radius =  0.25;
+//     this.radMin = .05;
+//     this.radMax = 1;
+//     this.radStep = .05;
+//   } else {
+//     this.lhConfig.radius = 30;
+//     this.radMin = 20;
+//     this.radMax = 60;
+//     this.radStep = 5;
+//   }
+//   this.applySettingsToHeatmapLayer();
+// }

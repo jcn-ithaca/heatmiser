@@ -26,16 +26,27 @@ import tracks_21 from 'testdata/a21.json';
 import tracks_22 from 'testdata/a22.json';
 import tracks_23 from 'testdata/a23.json';
 import {FormBuilder, FormGroup} from '@angular/forms';
-import {Subscription} from 'rxjs';
+import {Observable, Subject, Subscription} from 'rxjs';
+import {share, takeUntil} from 'rxjs/operators';
+import {ColorRamp, ColorRampService} from './color-ramp.service';
 
 type HeatmapOverlayConstructor = new(cfg: any) => any;
 declare var HeatmapOverlay: HeatmapOverlayConstructor;
 
 export interface HeatmapSettings {
-  gradient: HmGradient;
+  gradient: ColorRamp;
   minOpacity: number;
   maxOpacity: number;
-  useLocalMax: boolean;
+  useLocalExtrema: boolean;
+}
+
+interface LeafletHeatmapSettings extends HeatmapSettings {
+  radius: number;
+  scaleRadius: boolean;
+  blur: number;
+  latField: string;
+  lngField: string;
+  valueField: string;
 }
 
 export interface OioDatum {
@@ -43,14 +54,10 @@ export interface OioDatum {
   bin: {latitude: number, longitude: number};
 }
 
-export interface HmDatum {
+export interface HeatmapDatum {
   lat: number;
   lng: number;
   count: number;
-}
-
-export interface HmGradient {
-  [stop: string]: string;   // e.g. {'0.5' : 'orange'}
 }
 
 @Component({
@@ -62,7 +69,6 @@ export class AppComponent implements OnInit, OnDestroy {
   leafletOpts;
   layersControl;
   heatLayer: any;   // leaflet-heatmap
-
   heatLayers = [this.heatLayer];
   dataArrays: any[] = [
     tracks_1, tracks_2, tracks_3, tracks_4, tracks_5, tracks_6,
@@ -72,170 +78,37 @@ export class AppComponent implements OnInit, OnDestroy {
     ];
   leaf = L as any;
   // @ts-ignore
-  combinedData: Map<string, HmDatum> = new Map<string, HmDatum>();
-  // mergedData: HmDatum[] = [];
-  // filteredData: HmDatum[] = [];
-  a: Set<HmDatum>;
-  radMin = 20;
-  radMax = 60;
-  radStep = 5;
+  combinedData: Map<string, HeatmapDatum> = new Map<string, HeatmapDatum>();
   dataMax = 0;
-  muteLowActivity = false;
-  // muteMinimum = 5;
-  highlightConvergence = false;
-  // highlightFactor = 10;
-  opacityLevel = 1;
-  opacityLabels = ['Low', 'Medium', 'High'];
-  // hotspotIndex = 0;
   hotspotOptions = ['Show local maximum', 'Show global maximum'];
-  zoomLevel = 0;
+  zoomLevel = 7;
   heatmapForm: FormGroup;
   get currGradient() { return this.heatmapForm.get('colors').value; }
-  radii = [5, 6, 7, 10, 14, 19, 23, 32, 40, 50, 60, 70, 85, 100, 115, 132, 150, 170, 190, 300, 500, 800, 1200];
-  sub: Subscription;
+  radii = [5, 6, 7, 10, 14, 19, 23, 32, 40, 50, 60, 70, 85, 100, 115, 132, 150, 170, 190, 300, 500, 700, 900];
+  private ngUnsubscribe$: Subject<void>;
 
-  gradMulti: HmGradient = {
-    // 0.0 : 'blue',
-    // 0.1 : 'green',
-    // 0.2 : 'yellow',
-    // 0.4 : 'orange',
-    // 1.0 : 'red'
-    0.0 : '#0000FF',
-    0.25 : '#adff2f',
-    0.5 : '#FFFF00',
-    0.75 : '#feb24c',
-    1.0 : '#bd0026',
-  };
-  gradYOR1: HmGradient = {
-    0.0 : '#eed976',
-    0.4 : '#feb24c',
-    0.6 : '#fd8d3c',
-    1.0 : '#bd0026',
-  };
-  gradYOR2: HmGradient = {
-    0.0 : '#fed976',
-    0.9 : '#fd8d3c',
-    1.0 : '#e31a1c',
-  };
-  gradYOR3: HmGradient = {
-    0.0 : '#fed976',
-    0.1 : '#fd8d3c',
-    1.0 : '#e31a1c',
-  };
-  gradYOR4: HmGradient = {
-    0.0 : '#eed976',
-    0.4 : '#feb24c',
-    0.6 : '#fd8d3c',
-    1.0 : '#bd0026',
-  };
-  gradBP: HmGradient = {
-    0.0 : '#b3cde3',
-    0.5 : '#8856a7',
-    1.0 : '#810f7c',
-  };
-  gradO: HmGradient = {
-    0.0 : '#fdbe85',
-    0.3 : '#fd8d3c',
-    0.7 : '#e6550d',
-    1.0 : '#a63603',
-  };
-  gradR: HmGradient = {
-    0.0 : '#fcae91',
-    0.3 : '#fb6a4a',
-    0.7 : '#de2d26',
-    1.0 : '#a50f15',
-  };
-  gradB: HmGradient = {
-    0.0 : '#bdd7e7',
-    0.3 : '#6baed6',
-    0.7 : '#3182bd',
-    1.0 : '#08519c',
-  };
-  gradP: HmGradient = {
-    0.0 : '#cbc9e2',
-    0.3 : '#9e9ac8',
-    0.7 : '#756bb1',
-    1.0 : '#54278f',
-  };
-  gradG: HmGradient = {
-    0.0 : '#bae4b3',
-    0.3 : '#74c476',
-    0.7 : '#31a354',
-    1.0 : '#006d2c',
-  };
-  gradients = [this.gradMulti, this.gradYOR1, this.gradO, this.gradR, this.gradBP, this.gradB, this.gradP, this.gradG];
-  settings: HeatmapSettings = {gradient: this.gradMulti, minOpacity: .35, maxOpacity: .65, useLocalMax: true};
+  ramps: ColorRamp[] = [];
+  settings: HeatmapSettings = {gradient: {}, minOpacity: .35, maxOpacity: .65, useLocalExtrema: true};
 
-  // {label: 'Rainbow', gradient: this.gradMulti},
-  // {label: 'Yellow-Orange-Red #1', gradient: this.gradYOR1},
-  // {label: 'Oranges', gradient: this.gradO},
-  // {label: 'Reds', gradient: this.gradR},
-  // {label: 'Blue-Purple', gradient: this.gradBP},
-  // {label: 'Blues', gradient: this.gradB},
-  // {label: 'Purples', gradient: this.gradP},
-  // {label: 'Greens', gradient: this.gradG},
-
-  lhConfig = {
-    gradient: this.gradMulti,
-    radius: 35,
-    minOpacity: .4,
-    maxOpacity: .6,
-    blur: .85,
-    // scales the radius based on map zoom
-    scaleRadius: false,
-    // if set to false the heatmap uses the global maximum for colorization
-    // if activated: uses the data maximum within the current map boundaries
-    //   (there will always be a red spot with useLocalExtrema true)
-    useLocalExtrema: true,
-    // which field name in your data represents the latitude - default "lat"
-    latField: 'lat',
-    // which field name in your data represents the longitude - default "lng"
-    lngField: 'lng',
-    // which field name in your data represents the data value - default "value"
-    valueField: 'count'
-  };
-
-  constructor(private cdr: ChangeDetectorRef, public fb: FormBuilder) {
-  }
-
-  // hotspotChanged() {
-  //   this.lhConfig.useLocalExtrema = (this.hotspotIndex === 0);
-  //   this.settingsChanged();
-  // }
-
-  // opacityChanged() {
-  //   if (this.opacityLevel === 0) {
-  //     this.lhConfig.minOpacity = .25;
-  //     this.lhConfig.maxOpacity = .45;
-  //   }
-  //   if (this.opacityLevel === 1) {
-  //     this.lhConfig.minOpacity = .35;
-  //     this.lhConfig.maxOpacity = .6;
-  //   }
-  //   if (this.opacityLevel === 2) {
-  //     this.lhConfig.minOpacity = .4;
-  //     this.lhConfig.maxOpacity = .75;
-  //   }
-  //   this.applySettingsToHeatmapLayer();
-  // }
-
-  initFormModel() {
-    this.heatmapForm = this.fb.group({
-      colors: [this.gradMulti],
-      minOpacity: ['0.4'],
-      maxOpacity: ['0.6'],
-      hotspot: [0]
-    });
+  constructor(public fb: FormBuilder,
+              private cdr: ChangeDetectorRef,
+              private rampSvc: ColorRampService) {
+    this.ngUnsubscribe$ = new Subject();
   }
 
   ngOnInit() {
+    this.ramps = this.rampSvc.getRamps();
+    this.settings.gradient = this.ramps[0];
     this.initFormModel();
 
-    this.sub = this.heatmapForm.valueChanges.subscribe(val => {
+    // TODO separate subs per control
+    this.heatmapForm.valueChanges
+      .pipe(takeUntil(this.unsubscribed()))
+      .subscribe(val => {
       this.settings.gradient = val.colors;
       this.settings.minOpacity = val.minOpacity;
       this.settings.maxOpacity = val.maxOpacity;
-      this.settings.useLocalMax = (val.hotspot === 0);
+      this.settings.useLocalExtrema = (val.hotspot === 0);
       this.applySettingsToHeatmapLayer(this.settings);
     });
 
@@ -285,27 +158,40 @@ export class AppComponent implements OnInit, OnDestroy {
     };
 
     this.zoomLevel = 7;
-    // this.restoreDefaults();
     this.combineData();
-    this.addLeafletHeatmap();
+    this.addLeafletHeatmap(this.settings);
   }
 
   ngOnDestroy() {
-    if (this.sub) {
-      this.sub.unsubscribe();
-    }
+    this.ngUnsubscribe$.next();
+    this.ngUnsubscribe$.complete();
+  }
+
+  unsubscribed(): Observable<void> {
+    return this.ngUnsubscribe$.asObservable()
+        .pipe(share());
+  }
+
+  initFormModel() {
+    // todo init from settings
+    this.heatmapForm = this.fb.group({
+      colors: [this.ramps[0]],
+      minOpacity: ['0.4'],
+      maxOpacity: ['0.6'],
+      hotspot: [0]
+    });
   }
 
   setOpacityLevel(level: number) {
-    let newVals = {minOpacity: .35, maxOpacity: .65};
-
     if (level === 0) {
-      newVals = {minOpacity: .25, maxOpacity: .45};
+      this.heatmapForm.patchValue({minOpacity: .25, maxOpacity: .45});
+    }
+    if (level === 1) {
+      this.heatmapForm.patchValue({minOpacity: .35, maxOpacity: .65});
     }
     if (level === 2) {
-      newVals = {minOpacity: .5, maxOpacity: .75};
+      this.heatmapForm.patchValue({minOpacity: .5, maxOpacity: .75});
     }
-    this.heatmapForm.patchValue(newVals);
   }
 
   updateDataMax(): void {
@@ -323,33 +209,46 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   restoreDefaults() {
-    this.settings.gradient = this.gradMulti;
+    this.settings.gradient = this.ramps ? this.ramps[0] : {};
     this.settings.minOpacity = 0.35;
     this.settings.maxOpacity = 0.65;
-    this.settings.useLocalMax = true;
+    this.settings.useLocalExtrema = true;
     this.applySettingsToHeatmapLayer(this.settings);
   }
 
 
   // Update leaflet-heatmap layer
-  applySettingsToHeatmapLayer(opts: HeatmapSettings) {
-    this.lhConfig.gradient = opts.gradient;
-    this.lhConfig.minOpacity = opts.minOpacity;
-    this.lhConfig.maxOpacity = opts.maxOpacity;
-    this.lhConfig.useLocalExtrema = opts.useLocalMax;
-
+  private applySettingsToHeatmapLayer(settings: HeatmapSettings): void {
     if (this.heatLayer) {
-      const startTime = performance.now();
-      // Hack to redraw heatmap (https://github.com/pa7/heatmap.js/issues/290)
-      this.heatLayer._heatmap.configure(this.lhConfig);
+      const lhmSettings = this.getLeafletHeatmapSettings(settings);
+      // Force redraw; See (https://github.com/pa7/heatmap.js/issues/290)
+      this.heatLayer.cfg.useLocalExtrema = settings.useLocalExtrema;  // this is used at the plugin level
+      this.heatLayer.cfg.radius = lhmSettings.radius;
+      this.heatLayer._heatmap.configure(lhmSettings);
       this.heatLayer._reset();
-      const endTime = performance.now();
-      console.log(`>>> Heatmap rendering took: ${Math.round(endTime - startTime)} ms;`);
     }
   }
 
-  addLeafletHeatmap(): void {
-    this.heatLayer = new HeatmapOverlay(this.lhConfig);
+  getLeafletHeatmapSettings(settings: HeatmapSettings): LeafletHeatmapSettings {
+    const lhmSettings: LeafletHeatmapSettings = {
+      gradient: {0.0: 'yellow', 0.5: 'orange', 1.0: 'red'},
+      radius: this.radii[this.zoomLevel],
+      minOpacity: .4,
+      maxOpacity: .6,
+      blur: .85,
+      scaleRadius: false,
+      useLocalExtrema: true,
+      latField: 'lat',
+      lngField: 'lng',
+      valueField: 'count'
+    };
+    Object.assign(lhmSettings, settings);
+    return lhmSettings;
+  }
+
+  addLeafletHeatmap(settings: HeatmapSettings): void {
+    const lhmSettings = this.getLeafletHeatmapSettings(settings);
+    this.heatLayer = new HeatmapOverlay(lhmSettings);
     const combinedArr = Array.from(this.combinedData.values());
     const layerData = {min: 0, max: this.dataMax, data: combinedArr};
     this.heatLayer.setData(layerData);
@@ -357,10 +256,10 @@ export class AppComponent implements OnInit, OnDestroy {
     this.heatLayers = [this.heatLayer];
   }
 
-  addHeatMapData(locMap: Map<string, HmDatum>, oioData: OioDatum[]) {
+  addHeatMapData(locMap: Map<string, HeatmapDatum>, oioData: OioDatum[]) {
     for (const d of oioData) {
       const id = `${d.bin.latitude.toFixed(3)}:${d.bin.longitude.toFixed(3)}`;
-      const hmDatum: HmDatum = {lat: d.bin.latitude, lng: d.bin.longitude, count: d.count};
+      const hmDatum: HeatmapDatum = {lat: d.bin.latitude, lng: d.bin.longitude, count: d.count};
 
       if (locMap.has[id]) {
         const val = locMap.get(id);
@@ -398,10 +297,7 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   onZoomEnd(map: any, ev: any) {
-    this.zoomLevel = map.getZoom();
-    // const zoomFactor = this.zoomLevel * .75;
-    // this.lhConfig.radius = Math.round((zoomFactor * zoomFactor) + 5);
-    this.lhConfig.radius = this.radii[this.zoomLevel];
+    this.zoomLevel = map.getZoom(); // We need this to calculate radius
     this.applySettingsToHeatmapLayer(this.settings);
     this.cdr.detectChanges();
   }
@@ -464,3 +360,50 @@ export class AppComponent implements OnInit, OnDestroy {
 //   }
 //   this.applySettingsToHeatmapLayer();
 // }
+
+// gradYOR2: HmGradient = {
+//   0.0 : '#fed976',
+//   0.9 : '#fd8d3c',
+//   1.0 : '#e31a1c',
+// };
+// gradYOR3: HmGradient = {
+//   0.0 : '#fed976',
+//   0.1 : '#fd8d3c',
+//   1.0 : '#e31a1c',
+// };
+// gradYOR4: HmGradient = {
+//   0.0 : '#eed976',
+//   0.4 : '#feb24c',
+//   0.6 : '#fd8d3c',
+//   1.0 : '#bd0026',
+// };
+
+// hotspotChanged() {
+//   this.lhConfig.useLocalExtrema = (this.hotspotIndex === 0);
+//   this.settingsChanged();
+// }
+
+// opacityChanged() {
+//   if (this.opacityLevel === 0) {
+//     this.lhConfig.minOpacity = .25;
+//     this.lhConfig.maxOpacity = .45;
+//   }
+//   if (this.opacityLevel === 1) {
+//     this.lhConfig.minOpacity = .35;
+//     this.lhConfig.maxOpacity = .6;
+//   }
+//   if (this.opacityLevel === 2) {
+//     this.lhConfig.minOpacity = .4;
+//     this.lhConfig.maxOpacity = .75;
+//   }
+//   this.applySettingsToHeatmapLayer();
+// }
+
+// {label: 'Rainbow', gradient: this.gradMulti},
+// {label: 'Yellow-Orange-Red #1', gradient: this.gradYOR1},
+// {label: 'Oranges', gradient: this.gradO},
+// {label: 'Reds', gradient: this.gradR},
+// {label: 'Blue-Purple', gradient: this.gradBP},
+// {label: 'Blues', gradient: this.gradB},
+// {label: 'Purples', gradient: this.gradP},
+// {label: 'Greens', gradient: this.gradG},

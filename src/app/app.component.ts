@@ -112,6 +112,32 @@ export class AppComponent implements OnInit, OnDestroy {
       this.applySettingsToHeatmapLayer(this.settings);
     });
 
+    this.initializeLeaflet();
+    this.combineData();
+    this.addLeafletHeatmap(this.settings);
+  }
+
+  ngOnDestroy() {
+    this.ngUnsubscribe$.next();
+    this.ngUnsubscribe$.complete();
+  }
+
+  unsubscribed(): Observable<void> {
+    return this.ngUnsubscribe$.asObservable()
+        .pipe(share());
+  }
+
+  initFormModel() {
+    // todo init from settings
+    this.heatmapForm = this.fb.group({
+      colors: [this.ramps[0]],
+      minOpacity: ['0.4'],
+      maxOpacity: ['0.6'],
+      hotspot: [0]
+    });
+  }
+
+  private initializeLeaflet(): void {
     const baseMap1 = tileLayer('http://maps.wikimedia.org/osm-intl/{z}/{x}/{y}.png', {
       detectRetina: true,
       attribution: '&amp;copy; &lt;a href="https://www.openstreetmap.org/copyright"&gt;OpenStreetMap&lt;/a&gt; contributors'
@@ -158,28 +184,6 @@ export class AppComponent implements OnInit, OnDestroy {
     };
 
     this.zoomLevel = 7;
-    this.combineData();
-    this.addLeafletHeatmap(this.settings);
-  }
-
-  ngOnDestroy() {
-    this.ngUnsubscribe$.next();
-    this.ngUnsubscribe$.complete();
-  }
-
-  unsubscribed(): Observable<void> {
-    return this.ngUnsubscribe$.asObservable()
-        .pipe(share());
-  }
-
-  initFormModel() {
-    // todo init from settings
-    this.heatmapForm = this.fb.group({
-      colors: [this.ramps[0]],
-      minOpacity: ['0.4'],
-      maxOpacity: ['0.6'],
-      hotspot: [0]
-    });
   }
 
   setOpacityLevel(level: number) {

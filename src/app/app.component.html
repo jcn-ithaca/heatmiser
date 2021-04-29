@@ -12,12 +12,13 @@
                     <div [style.background-image]="currGradient | gradientCSS" class="colorRamp"></div>
                 </mat-panel-description>
             </mat-expansion-panel-header>
-            <mat-radio-group formControlName="colors" class="colorsGroup">
+            <mat-radio-group formControlName="gradient" class="colorsGroup">
                 <mat-list>
                     <mat-list-item *ngFor="let g of ramps" class="colorsRadioItem">
                         <mat-radio-button [value]="g" class="colorsRadioBtn">
                         </mat-radio-button>
-                        <div [style.background-image]="g | gradientCSS" class="colorRamp radioRamp"></div>
+                        <div [style.background-image]="g | gradientCSS" class="colorRamp radioRamp"
+                        (click)="selectRamp(g)"></div>
                     </mat-list-item>
                 </mat-list>
             </mat-radio-group>
@@ -38,7 +39,7 @@
             <span>{{ settings.maxOpacity }}</span>
         </div>
         <button (click)="setOpacityLevel(0)">Low</button>
-        <button (click)="setOpacityLevel(1)">Medium</button>
+        <button (click)="setOpacityLevel(1)">Med</button>
         <button (click)="setOpacityLevel(2)">High</button>
 
         <hr>
@@ -52,7 +53,7 @@
             </mat-select>
         </mat-form-field>
 
-        <button (click)="restoreDefaults()" color="basic" mat-stroked-button>Restore Defaults</button>
+        <button (click)="restoreDefaults()" color="primary" mat-stroked-button>Restore Defaults</button>
         </form>
     </mat-card>
 
@@ -70,8 +71,6 @@
 
     <mat-grid-tile colspan="1" rowspan="1" style="min-width: 300px">
         <mat-list>
-<!--            <mat-list-item>-->
-<!--            </mat-list-item>-->
             <mat-list-item>
                 Zoom: {{zoomLevel}}
             </mat-list-item>

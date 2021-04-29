@@ -1,4 +1,4 @@
-import {ChangeDetectorRef, Component, OnDestroy, OnInit} from '@angular/core';
+import {ChangeDetectorRef, Component, Inject, OnDestroy, OnInit} from '@angular/core';
 import {latLng, tileLayer} from 'leaflet';
 import * as L from 'leaflet';
 import 'leaflet-heatmap';
@@ -26,9 +26,10 @@ import tracks_21 from 'testdata/a21.json';
 import tracks_22 from 'testdata/a22.json';
 import tracks_23 from 'testdata/a23.json';
 import {FormBuilder, FormGroup} from '@angular/forms';
-import {Observable, Subject, Subscription} from 'rxjs';
+import {Observable, Subject} from 'rxjs';
 import {share, takeUntil} from 'rxjs/operators';
 import {ColorRamp, ColorRampService} from './color-ramp.service';
+import {DOCUMENT} from '@angular/common';
 
 type HeatmapOverlayConstructor = new(cfg: any) => any;
 declare var HeatmapOverlay: HeatmapOverlayConstructor;
@@ -83,7 +84,7 @@ export class AppComponent implements OnInit, OnDestroy {
   hotspotOptions = ['Show local maximum', 'Show global maximum'];
   zoomLevel = 7;
   heatmapForm: FormGroup;
-  get currGradient() { return this.heatmapForm.get('colors').value; }
+  get currGradient() { return this.heatmapForm.get('gradient').value; }
   radii = [5, 6, 7, 10, 14, 19, 23, 32, 40, 50, 60, 70, 85, 100, 115, 132, 150, 170, 190, 300, 500, 700, 900];
   private ngUnsubscribe$: Subject<void>;
 
@@ -91,30 +92,33 @@ export class AppComponent implements OnInit, OnDestroy {
   settings: HeatmapSettings = {gradient: {}, minOpacity: .35, maxOpacity: .65, useLocalExtrema: true};
 
   constructor(public fb: FormBuilder,
+              @Inject(DOCUMENT) private document: Document,
               private cdr: ChangeDetectorRef,
               private rampSvc: ColorRampService) {
     this.ngUnsubscribe$ = new Subject();
   }
 
+  private static addHeatMapData(locMap: Map<string, HeatmapDatum>, oioData: OioDatum[]) {
+    for (const d of oioData) {
+      const id = `${d.bin.latitude.toFixed(3)}:${d.bin.longitude.toFixed(3)}`;
+      const hmDatum: HeatmapDatum = {lat: d.bin.latitude, lng: d.bin.longitude, count: d.count};
+
+      if (locMap.has[id]) {
+        const val = locMap.get(id);
+        val.count += hmDatum.count;
+        locMap.set(id, val);
+      } else {
+        locMap.set(id, hmDatum);
+      }
+    }
+  }
+
   ngOnInit() {
     this.ramps = this.rampSvc.getRamps();
-    this.settings.gradient = this.ramps[0];
     this.initFormModel();
-
-    // TODO separate subs per control
-    this.heatmapForm.valueChanges
-      .pipe(takeUntil(this.unsubscribed()))
-      .subscribe(val => {
-      this.settings.gradient = val.colors;
-      this.settings.minOpacity = val.minOpacity;
-      this.settings.maxOpacity = val.maxOpacity;
-      this.settings.useLocalExtrema = (val.hotspot === 0);
-      this.applySettingsToHeatmapLayer(this.settings);
-    });
-
     this.initializeLeaflet();
     this.combineData();
-    this.addLeafletHeatmap(this.settings);
+    this.addLeafletHeatmap();
   }
 
   ngOnDestroy() {
@@ -122,19 +126,91 @@ export class AppComponent implements OnInit, OnDestroy {
     this.ngUnsubscribe$.complete();
   }
 
-  unsubscribed(): Observable<void> {
+  selectRamp(g: ColorRamp): void {
+    this.heatmapForm.patchValue({gradient: g});
+  }
+
+  setOpacityLevel(level: number) {
+    if (level === 0) {
+      this.heatmapForm.patchValue({minOpacity: .25, maxOpacity: .45});
+    }
+    if (level === 1) {
+      this.heatmapForm.patchValue({minOpacity: .35, maxOpacity: .65});
+    }
+    if (level === 2) {
+      this.heatmapForm.patchValue({minOpacity: .5, maxOpacity: .75});
+    }
+  }
+
+  restoreDefaults() {
+    this.heatmapForm.reset({gradient: this.ramps[0], minOpacity: .35, maxOpacity: .65, hotspot: 0});
+  }
+
+  onMapReady(map: any) {
+    console.log('>>> Map is ready');
+    map.on('zoomend', () => this.onZoomEnd(map) );
+    (map as any)._onResize();
+    setTimeout(() => this.applyAndSaveSettings(), 200);
+  }
+
+  onZoomEnd(map: any) {
+    this.zoomLevel = map.getZoom(); // We need this to calculate radius
+    this.applyAndSaveSettings();
+    this.cdr.detectChanges();
+  }
+
+  private unsubscribed(): Observable<void> {
     return this.ngUnsubscribe$.asObservable()
         .pipe(share());
   }
 
-  initFormModel() {
-    // todo init from settings
+  private loadSettings(): HeatmapSettings {
+    const opts: HeatmapSettings = {gradient: this.ramps[0], minOpacity: .4, maxOpacity: .6, useLocalExtrema: true};
+    const n = this.document.defaultView.localStorage.getItem('heatmiser_rampIndex');
+    const minO = this.document.defaultView.localStorage.getItem('heatmiser_minOpacity');
+    const maxO = this.document.defaultView.localStorage.getItem('heatmiser_maxOpacity');
+    const ext = this.document.defaultView.localStorage.getItem('heatmiser_useLocalExtrema');
+
+    if (n !== null) {
+      opts.gradient = this.ramps[n];
+    }
+    if (minO !== null) {
+      opts.minOpacity = Number(minO);
+    }
+    if (maxO !== null) {
+      opts.maxOpacity = Number(maxO);
+    }
+    if (ext !== null) {
+      opts.useLocalExtrema = (ext === 'true');
+    }
+    return opts;
+  }
+
+  private saveSettings(opts: HeatmapSettings)  {
+    const n = this.ramps.indexOf(opts.gradient);
+    if (n > 0) {
+      this.document.defaultView.localStorage.setItem('heatmiser_rampIndex', n.toString());
+    }
+    this.document.defaultView.localStorage.setItem('heatmiser_minOpacity', opts.minOpacity.toString());
+    this.document.defaultView.localStorage.setItem('heatmiser_maxOpacity', opts.maxOpacity.toString());
+    this.document.defaultView.localStorage.setItem('heatmiser_useLocalExtrema', opts.useLocalExtrema.toString());
+  }
+
+  private initFormModel() {
+    const opts = this.loadSettings();
+
     this.heatmapForm = this.fb.group({
-      colors: [this.ramps[0]],
-      minOpacity: ['0.4'],
-      maxOpacity: ['0.6'],
-      hotspot: [0]
+      gradient: [opts.gradient],
+      minOpacity: [opts.minOpacity],
+      maxOpacity: [opts.maxOpacity],
+      hotspot: [opts.useLocalExtrema ? 0 : 1]
     });
+
+    this.heatmapForm.valueChanges
+        .pipe(takeUntil(this.unsubscribed()))
+        .subscribe(() => {
+          this.applyAndSaveSettings();
+        });
   }
 
   private initializeLeaflet(): void {
@@ -186,19 +262,7 @@ export class AppComponent implements OnInit, OnDestroy {
     this.zoomLevel = 7;
   }
 
-  setOpacityLevel(level: number) {
-    if (level === 0) {
-      this.heatmapForm.patchValue({minOpacity: .25, maxOpacity: .45});
-    }
-    if (level === 1) {
-      this.heatmapForm.patchValue({minOpacity: .35, maxOpacity: .65});
-    }
-    if (level === 2) {
-      this.heatmapForm.patchValue({minOpacity: .5, maxOpacity: .75});
-    }
-  }
-
-  updateDataMax(): void {
+  private updateDataMax(): void {
     this.dataMax = 0;
     const whichData = this.combinedData;  // allow boosted cells to exceed dataMax?
 
@@ -212,28 +276,55 @@ export class AppComponent implements OnInit, OnDestroy {
     }
   }
 
-  restoreDefaults() {
-    this.settings.gradient = this.ramps ? this.ramps[0] : {};
-    this.settings.minOpacity = 0.35;
-    this.settings.maxOpacity = 0.65;
-    this.settings.useLocalExtrema = true;
-    this.applySettingsToHeatmapLayer(this.settings);
+  private getCurrentSettings(): HeatmapSettings {
+    const obj = this.heatmapForm.getRawValue();
+    return {gradient: obj.gradient, minOpacity: obj.minOpacity, maxOpacity: obj.maxOpacity, useLocalExtrema: (obj.hotspot === 0)};
   }
-
 
   // Update leaflet-heatmap layer
-  private applySettingsToHeatmapLayer(settings: HeatmapSettings): void {
-    if (this.heatLayer) {
-      const lhmSettings = this.getLeafletHeatmapSettings(settings);
-      // Force redraw; See (https://github.com/pa7/heatmap.js/issues/290)
-      this.heatLayer.cfg.useLocalExtrema = settings.useLocalExtrema;  // this is used at the plugin level
-      this.heatLayer.cfg.radius = lhmSettings.radius;
-      this.heatLayer._heatmap.configure(lhmSettings);
-      this.heatLayer._reset();
+  private applyAndSaveSettings(): void {
+    if (!this.heatLayer) {
+      return;
     }
+    this.settings = this.getCurrentSettings();
+    const lhmSettings = this.getLeafletHeatmapSettings(this.settings);
+    // Force redraw; See (https://github.com/pa7/heatmap.js/issues/290)
+    this.heatLayer.cfg.useLocalExtrema = lhmSettings.useLocalExtrema;  // used at the plugin level
+    this.heatLayer.cfg.radius = lhmSettings.radius;
+    this.heatLayer._heatmap.configure(lhmSettings);
+    this.heatLayer._reset();
+    this.saveSettings(this.settings);
   }
 
-  getLeafletHeatmapSettings(settings: HeatmapSettings): LeafletHeatmapSettings {
+  private addLeafletHeatmap(): void {
+    const lhmSettings = this.getLeafletHeatmapSettings(this.settings);
+    this.heatLayer = new HeatmapOverlay(lhmSettings);
+    const combinedArr = Array.from(this.combinedData.values());
+    const layerData = {min: 0, max: this.dataMax, data: combinedArr};
+    this.heatLayer.setData(layerData);
+    this.layersControl.overlays[`LH Heatmap`] = this.heatLayer;
+    this.heatLayers = [this.heatLayer];
+  }
+
+  private combineData(): void {
+    this.combinedData.clear();
+    const startTime = performance.now();
+    let totalPts = 0;
+
+    for (const arr of this.dataArrays) {
+      AppComponent.addHeatMapData(this.combinedData, arr);
+      totalPts += arr.length;
+    }
+    const endTime = performance.now();
+
+    console.log(`>>> Total locations: ${totalPts};`);
+    console.log(`>>> Combined locations: ${this.combinedData.size};`);
+    console.log(`>>> Combining took: ${Math.round(endTime - startTime)} ms;`);
+    this.updateDataMax();
+    console.log(`>>> Maximum count: ${this.dataMax};`);
+  }
+
+  private getLeafletHeatmapSettings(settings: HeatmapSettings): LeafletHeatmapSettings {
     const lhmSettings: LeafletHeatmapSettings = {
       gradient: {0.0: 'yellow', 0.5: 'orange', 1.0: 'red'},
       radius: this.radii[this.zoomLevel],
@@ -249,63 +340,6 @@ export class AppComponent implements OnInit, OnDestroy {
     Object.assign(lhmSettings, settings);
     return lhmSettings;
   }
-
-  addLeafletHeatmap(settings: HeatmapSettings): void {
-    const lhmSettings = this.getLeafletHeatmapSettings(settings);
-    this.heatLayer = new HeatmapOverlay(lhmSettings);
-    const combinedArr = Array.from(this.combinedData.values());
-    const layerData = {min: 0, max: this.dataMax, data: combinedArr};
-    this.heatLayer.setData(layerData);
-    this.layersControl.overlays[`LH Heatmap`] = this.heatLayer;
-    this.heatLayers = [this.heatLayer];
-  }
-
-  addHeatMapData(locMap: Map<string, HeatmapDatum>, oioData: OioDatum[]) {
-    for (const d of oioData) {
-      const id = `${d.bin.latitude.toFixed(3)}:${d.bin.longitude.toFixed(3)}`;
-      const hmDatum: HeatmapDatum = {lat: d.bin.latitude, lng: d.bin.longitude, count: d.count};
-
-      if (locMap.has[id]) {
-        const val = locMap.get(id);
-        val.count += hmDatum.count;
-        locMap.set(id, val);
-      } else {
-        locMap.set(id, hmDatum);
-      }
-    }
-  }
-
-  combineData(): void {
-    this.combinedData.clear();
-    const startTime = performance.now();
-    let totalPts = 0;
-
-    for (const arr of this.dataArrays) {
-      this.addHeatMapData(this.combinedData, arr);
-      totalPts += arr.length;
-    }
-    const endTime = performance.now();
-
-    console.log(`>>> Total locations: ${totalPts};`);
-    console.log(`>>> Combined locations: ${this.combinedData.size};`);
-    console.log(`>>> Combining took: ${Math.round(endTime - startTime)} ms;`);
-    this.updateDataMax();
-    console.log(`>>> Maximum count: ${this.dataMax};`);
-  }
-
-  onMapReady(map: any) {
-    console.log('>>> Map is ready');
-    map.on('zoomend', ev => this.onZoomEnd(map, ev) );
-    (map as any)._onResize();
-    setTimeout(() => this.applySettingsToHeatmapLayer(this.settings), 200);
-  }
-
-  onZoomEnd(map: any, ev: any) {
-    this.zoomLevel = map.getZoom(); // We need this to calculate radius
-    this.applySettingsToHeatmapLayer(this.settings);
-    this.cdr.detectChanges();
-  }
-
 }
 
 

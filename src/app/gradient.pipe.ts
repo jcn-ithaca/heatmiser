@@ -14,9 +14,15 @@ export class GradientPipe implements PipeTransform {
     const colorEntries = Object.entries(g);
     // sort color stops by the key (0.1, 0.2, etc)
     colorEntries.sort((a, b) => a[0].localeCompare(b[0]));
-    const colorValues = colorEntries.map(e => e[1]).join(',');
-    const s = `linear-gradient(90deg, ${colorValues})`;
-    return this.sanitizer.bypassSecurityTrustStyle(s);
+    const colorStops: string[] = [];
+
+    for (const e of colorEntries) {
+      const percent = Math.round(Number(e[0]) * 100);
+      colorStops.push(` ${e[1]} ${percent}%`);
+    }
+    const css = `linear-gradient(90deg,${colorStops.join(',')})`;
+    console.log(`Generating CSS: ${css}`);
+    return this.sanitizer.bypassSecurityTrustStyle(css);
   }
 
 }

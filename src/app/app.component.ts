@@ -188,7 +188,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
   private saveSettings(opts: HeatmapSettings)  {
     const n = this.ramps.indexOf(opts.gradient);
-    if (n > 0) {
+    if (n >= 0) {
       this.document.defaultView.localStorage.setItem('heatmiser_rampIndex', n.toString());
     }
     this.document.defaultView.localStorage.setItem('heatmiser_minOpacity', opts.minOpacity.toString());

@@ -1,61 +1,74 @@
 <mat-grid-list cols="10" rowHeight="100%">
     <mat-grid-tile colspan="2" rowspan="1" style="min-width: 300px">
-    <mat-card>
-        <form [formGroup]="heatmapForm" novalidate>
+        <mat-card>
+            <form [formGroup]="heatmapForm" novalidate>
 
-        <mat-expansion-panel class="colorPanel mat-elevation-z0">
-            <mat-expansion-panel-header>
-                <mat-panel-title>
-                    Colors
-                </mat-panel-title>
-                <mat-panel-description>
-                    <div [style.background-image]="currGradient | gradientCSS" class="colorRamp"></div>
-                </mat-panel-description>
-            </mat-expansion-panel-header>
-            <mat-radio-group formControlName="gradient" class="colorsGroup">
-                <mat-list>
-                    <mat-list-item *ngFor="let g of ramps" class="colorsRadioItem">
-                        <mat-radio-button [value]="g" class="colorsRadioBtn">
-                        </mat-radio-button>
-                        <div [style.background-image]="g | gradientCSS" class="colorRamp radioRamp"
-                        (click)="selectRamp(g)"></div>
-                    </mat-list-item>
-                </mat-list>
-            </mat-radio-group>
-        </mat-expansion-panel>
+                <mat-expansion-panel class="colorPanel mat-elevation-z0">
+                    <mat-expansion-panel-header>
+                        <mat-panel-title>
+                            Colors
+                        </mat-panel-title>
+                        <mat-panel-description>
+                            <div [style.background-image]="currGradient | gradientCSS" class="colorRamp"></div>
+                        </mat-panel-description>
+                    </mat-expansion-panel-header>
+                    <mat-radio-group class="colorsGroup" formControlName="gradient">
+                        <mat-list>
+                            <mat-list-item *ngFor="let g of ramps" class="colorsRadioItem">
+                                <mat-radio-button [value]="g" class="colorsRadioBtn">
+                                </mat-radio-button>
+                                <div (click)="selectRamp(g)" [style.background-image]="g | gradientCSS"
+                                     class="colorRamp radioRamp"></div>
+                            </mat-list-item>
+                        </mat-list>
+                    </mat-radio-group>
+                </mat-expansion-panel>
 
-        <hr>
-        <h4>Opacity</h4>
-        <div class="formItem">
-            <span class="label">Min</span>
-            <mat-slider formControlName="minOpacity" max="1" min="0" step=".05">
-            </mat-slider>
-            <span>{{ settings.minOpacity }}</span>
-        </div>
-        <div class="formItem">
-            <span class="label">Max</span>
-            <mat-slider formControlName="maxOpacity" max="1" min="0" step=".05">
-            </mat-slider>
-            <span>{{ settings.maxOpacity }}</span>
-        </div>
-        <button (click)="setOpacityLevel(0)">Low</button>
-        <button (click)="setOpacityLevel(1)">Med</button>
-        <button (click)="setOpacityLevel(2)">High</button>
+                <hr>
+                <h4>Opacity Range
+                    <div style="float: right" class="presets">
+                        <button (click)="setOpacityLevel(0)" class="oLow">Low</button>
+                        <button (click)="setOpacityLevel(1)" class="oMed">Med</button>
+                        <button (click)="setOpacityLevel(2)" class="oHigh">High</button>
+                    </div>
+                </h4>
+                <div class="formItem">
+                    <span class="label">Min</span>
+                    <mat-slider formControlName="minOpacity" max="1" min="0" step=".05">
+                    </mat-slider>
+                    <span>{{ settings.minOpacity }}</span>
+                </div>
+                <div class="formItem">
+                    <span class="label">Max</span>
+                    <mat-slider formControlName="maxOpacity" max="1" min="0" step=".05">
+                    </mat-slider>
+                    <span>{{ settings.maxOpacity }}</span>
+                </div>
 
-        <hr>
+                <hr>
 
-        <mat-form-field>
-            <mat-label>Hotspots</mat-label>
-            <mat-select formControlName="hotspot">
-                <mat-option *ngFor="let opt of hotspotOptions; let i = index" [value]="i">
-                    {{opt}}
-                </mat-option>
-            </mat-select>
-        </mat-form-field>
+                <!--        <mat-form-field>-->
+                <!--            <mat-label>Hotspots</mat-label>-->
+                <!--            <mat-select formControlName="hotspot">-->
+                <!--                <mat-option *ngFor="let opt of hotspotOptions; let i = index" [value]="i">-->
+                <!--                    {{opt}}-->
+                <!--                </mat-option>-->
+                <!--            </mat-select>-->
+                <!--        </mat-form-field>-->
 
-        <button (click)="restoreDefaults()" color="primary" mat-stroked-button>Restore Defaults</button>
-        </form>
-    </mat-card>
+                <mat-label>Hotspots show high activity levels:</mat-label>
+                <br>
+                <mat-radio-group formControlName="hotspot" style="width: 100%">
+                    <mat-radio-button class="hotspotRadioBtn" *ngFor="let s of ['in view', 'worldwide']; let i = index" [value]="i">
+                        {{s}}
+                    </mat-radio-button>
+                </mat-radio-group>
+
+                <hr>
+
+                <button (click)="restoreDefaults()" color="primary" mat-stroked-button class="formActionBtn">Restore Defaults</button>
+            </form>
+        </mat-card>
 
 
     </mat-grid-tile>

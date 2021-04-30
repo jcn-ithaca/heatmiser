@@ -25,6 +25,25 @@ form-item {
   width: 100%;
 }
 
+.presets {
+  button {
+    margin-left: 4px;
+    border-style: none;
+    height: 20px;
+    font-size: 12px;
+  }
+}
+
+button.oLow {
+  background-color: gainsboro;
+}
+button.oMed {
+  background-color: silver;
+}
+button.oHigh {
+  background-color: darkgray;
+}
+
 span.label {
   width: 100px;
 }
@@ -63,12 +82,20 @@ mat-expansion-panel.colorPanel {
   }
 }
 
+button.formActionBtn {
+  margin-top: 8px;
+}
+
 button mat-icon {
   font-size: 16px;
 }
 
-mat-radio-button {
+mat-radio-button.colorsRadioBtn {
   width: 30px;
+}
+
+mat-radio-button.hotspotRadioBtn {
+  margin-right: 8px;
 }
 
 mat-list-item.colorsRadioItem mat-list-item-content {

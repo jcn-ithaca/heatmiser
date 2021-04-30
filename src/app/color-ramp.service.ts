@@ -21,16 +21,10 @@ export class ColorRampService {
     Blues: ['LightSkyBlue', 'DodgerBlue', 'RoyalBlue', 'Blue'],
     Purples: ['#b390fb', 'MediumPurple', 'DarkViolet', 'Purple']
   };
-  // tslint:disable-next-line:max-line-length
-  // defaultRamps: string[] = ['YlOrRd', 'OrRd', 'Oranges', 'Reds', 'PuBu', 'BuPu', 'BuGn', 'YlGn', 'RdPu', 'Greens', 'YlGnBu', 'Purples', 'GnBu', 'PuRd', 'Blues'];
   defaultRamps: string[] = ['Rainbow1', 'Rainbow2', 'LYSO', 'BMR', 'GoldRed', 'PinkRed', 'Blues', 'Purples'];
 
   constructor() {
   }
-
-  // Note: the lightest color and darkest color in ColorBrewer2 ramps may be too light/dark for use in heatmaps;
-  // Brewer's ramps are designed for choropleth maps, which don't have the visual challenges of overlaying colored map features;
-  // However, I'm not 100% sure about this, so I'm keeping the full lists of original colors in above ramps;
 
   getRamps(): ColorRamp[] {
     const ramps: ColorRamp[] = [];
